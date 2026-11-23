@@ -48,10 +48,6 @@ ThemeData buildTheme() {
     scaffoldBackgroundColor: MidadColors.ink,
     colorScheme: base.colorScheme.copyWith(primary: MidadColors.saffron, secondary: MidadColors.saffron, surface: MidadColors.surface),
     textTheme: GoogleFonts.ibmPlexSansArabicTextTheme(base.textTheme),
-    pageTransitionsTheme: const PageTransitionsTheme(builders: {
-      TargetPlatform.android: CupertinoPageTransitionsBuilder(),
-      TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-    }),
     sliderTheme: base.sliderTheme.copyWith(
       trackHeight: 3,
       thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
