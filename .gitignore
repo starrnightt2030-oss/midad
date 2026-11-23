@@ -5,20 +5,20 @@
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
-build/
+/build/
 *.iml
 .idea/
 .metadata
 pubspec.lock
 
 # منصات تُولَّد تلقائيًا في GitHub Actions
-android/
-ios/
-web/
-linux/
-macos/
-windows/
-test/
+/android/
+/ios/
+/web/
+/linux/
+/macos/
+/windows/
+/test/
 
 # أداة المحتوى
 tools/.cache/
