@@ -1,0 +1,86 @@
+name: بناء APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lib/**'
+      - 'pubspec.yaml'
+      - 'assets/**'
+      - 'branding/**'
+      - 'tools/ci/**'
+      - '.github/workflows/build-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-apk
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: تجهيز مشروع أندرويد
+        run: |
+          flutter create --platforms=android --org com.eldawly --project-name atheer .
+          rm -rf test
+          python3 tools/ci/patch_android.py
+
+      - name: مفتاح التوقيع الثابت (حتى تعمل التحديثات فوق النسخة القديمة)
+        env:
+          KEY_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        run: |
+          mkdir -p ~/.android
+          if [ -n "$KEY_B64" ]; then
+            echo "$KEY_B64" | base64 -d > ~/.android/debug.keystore
+          else
+            echo "::warning::أضف ANDROID_KEYSTORE_B64 في Secrets حتى يكون التوقيع ثابتًا بين الإصدارات"
+          fi
+
+      - name: رقم الإصدار
+        id: v
+        run: |
+          V=$(grep '^version:' pubspec.yaml | sed 's/version: *//; s/+.*//')
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+
+      - run: flutter pub get
+
+      - name: بناء APK
+        run: >
+          flutter build apk --release
+          --build-name=${{ steps.v.outputs.version }}
+          --build-number=${{ github.run_number }}
+          --dart-define=APP_VERSION=${{ steps.v.outputs.version }}
+          --dart-define=BUILD_NUMBER=${{ github.run_number }}
+
+      - name: تسمية الملف
+        run: cp build/app/outputs/flutter-apk/app-release.apk "atheer-v${{ steps.v.outputs.version }}-b${{ github.run_number }}.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: atheer-apk
+          path: atheer-*.apk
+
+      - name: نشر الإصدار
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.v.outputs.version }}-b${{ github.run_number }}
+          name: أثير ${{ steps.v.outputs.version }} — بناء ${{ github.run_number }}
+          body: ${{ github.event.head_commit.message || 'تحسينات وإصلاحات' }}
+          files: atheer-*.apk
+          make_latest: true

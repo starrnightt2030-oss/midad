@@ -1,0 +1,72 @@
+name: توليد الصوت والأغلفة
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'content/catalog.json'
+      - 'content/chapters/**'
+      - 'content/covers/**'
+  workflow_dispatch:
+    inputs:
+      work:
+        description: 'معرّف العمل (اتركه فارغًا لكل الفصول التي بلا صوت)'
+        required: false
+      force:
+        description: 'إعادة توليد الصوت حتى لو موجود'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: content
+  cancel-in-progress: false
+
+jobs:
+  content:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: الأدوات
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+          pip install -q google-genai pillow
+
+      - uses: actions/cache@v4
+        with:
+          path: tools/.cache
+          key: tts-${{ github.run_id }}
+          restore-keys: tts-
+
+      - name: ضبط الأغلفة وربطها
+        run: python tools/atheer_studio.py covers
+
+      - name: توليد الصوت (Gemini TTS)
+        if: ${{ env.GEMINI_API_KEY != '' }}
+        run: >
+          python tools/atheer_studio.py voice
+          ${{ inputs.work && format('--work {0}', inputs.work) || '' }}
+          ${{ inputs.force && '--force' || '' }}
+
+      - name: فحص الفهرس
+        run: python tools/atheer_studio.py check
+
+      - name: حفظ النتائج
+        run: |
+          git config user.name "atheer-bot"
+          git config user.email "atheer-bot@users.noreply.github.com"
+          git add content
+          if ! git diff --cached --quiet; then
+            git commit -m "محتوى: أصوات وأغلفة تلقائية"
+            git push
+          fi

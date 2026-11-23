@@ -1,0 +1,288 @@
+{
+ "version": "2026.11.23",
+ "worlds": [
+  {
+   "id": "stories",
+   "name": "عالم الحكايات",
+   "short": "الحكايات",
+   "tagline": "قصص تُروى بأصوات وموسيقى",
+   "color": "#F0B35A",
+   "art": "storm"
+  },
+  {
+   "id": "knowledge",
+   "name": "عالم المعرفة",
+   "short": "المعرفة",
+   "tagline": "علوم مبسّطة في دقائق",
+   "color": "#7FD3D3",
+   "art": "deepsea"
+  },
+  {
+   "id": "soul",
+   "name": "عالم الروح",
+   "short": "الروح",
+   "tagline": "مواعظ ورقائق تطمئن القلب",
+   "color": "#D3A8F2",
+   "art": "lantern"
+  },
+  {
+   "id": "self",
+   "name": "عالم الذات",
+   "short": "الذات",
+   "tagline": "خطوات صغيرة لحياة أهدأ",
+   "color": "#8FDCC8",
+   "art": "morning"
+  },
+  {
+   "id": "reflections",
+   "name": "عالم التأملات",
+   "short": "التأملات",
+   "tagline": "خواطر تُقرأ ببطء",
+   "color": "#F2A7A0",
+   "art": "traveler"
+  }
+ ],
+ "ambience": [
+  {
+   "id": "calm",
+   "name": "موسيقى هادئة",
+   "icon": "music",
+   "file": "ambience/calm.m4a"
+  },
+  {
+   "id": "rain",
+   "name": "مطر",
+   "icon": "rain",
+   "file": "ambience/rain.m4a"
+  },
+  {
+   "id": "sea",
+   "name": "بحر",
+   "icon": "sea",
+   "file": "ambience/sea.m4a"
+  },
+  {
+   "id": "night",
+   "name": "ليل",
+   "icon": "night",
+   "file": "ambience/night.m4a"
+  }
+ ],
+ "works": [
+  {
+   "id": "after-storm",
+   "world": "stories",
+   "title": "ما بعد العاصفة",
+   "kind": "قصة",
+   "description": "حين يهدأ البحر، يبدأ يوسف رحلته الحقيقية: أن يفهم ما تركته العاصفة.",
+   "art": "storm",
+   "cover": "",
+   "narrator": "صوت أثير",
+   "minutes": 14,
+   "chapters": [
+    {
+     "id": "ch1",
+     "title": "الضوء الذي لم ينطفئ",
+     "script": "chapters/after-storm-ch1.json",
+     "audio": ""
+    },
+    {
+     "id": "ch2",
+     "title": "رسالة في زجاجة",
+     "script": "chapters/after-storm-ch2.json",
+     "audio": ""
+    }
+   ]
+  },
+  {
+   "id": "traveler",
+   "world": "stories",
+   "title": "المسافر الذي لم يعد",
+   "kind": "قصة",
+   "description": "خطوات على رمال لا تنتهي، ورسالة لم تُفتح منذ سنين.",
+   "art": "traveler",
+   "cover": "",
+   "narrator": "صوت أثير",
+   "minutes": 8,
+   "chapters": [
+    {
+     "id": "ch1",
+     "title": "الطريق إلى الشرق",
+     "script": "chapters/traveler-ch1.json",
+     "audio": ""
+    }
+   ]
+  },
+  {
+   "id": "last-lantern",
+   "world": "stories",
+   "title": "حكاية الفانوس الأخير",
+   "kind": "قصة",
+   "description": "في حارة قديمة، فانوس صغير ينتظر صاحبه منذ سنوات.",
+   "art": "lantern",
+   "cover": "",
+   "narrator": "صوت أثير",
+   "minutes": 7,
+   "chapters": [
+    {
+     "id": "ch1",
+     "title": "دكان الضوء",
+     "script": "chapters/last-lantern-ch1.json",
+     "audio": ""
+    }
+   ]
+  },
+  {
+   "id": "deep-sea",
+   "world": "knowledge",
+   "title": "أسرار البحر العميق",
+   "kind": "معرفة",
+   "description": "رحلة صوتية إلى عالم لا يصله الضوء، حيث تصنع الكائنات نورها بنفسها.",
+   "art": "deepsea",
+   "cover": "",
+   "narrator": "صوت أثير",
+   "minutes": 5,
+   "chapters": [
+    {
+     "id": "ch1",
+     "title": "حيث ينتهي الضوء",
+     "script": "chapters/deep-sea-ch1.json",
+     "audio": ""
+    }
+   ]
+  },
+  {
+   "id": "your-mind",
+   "world": "knowledge",
+   "title": "كيف يفكر عقلك؟",
+   "kind": "معرفة",
+   "description": "جولة مبسّطة داخل الدماغ: كيف نتعلّم، ولماذا ننام، ولماذا ننسى.",
+   "art": "mind",
+   "cover": "",
+   "narrator": "صوت أثير",
+   "minutes": 5,
+   "chapters": [
+    {
+     "id": "ch1",
+     "title": "مدينة الإشارات",
+     "script": "chapters/your-mind-ch1.json",
+     "audio": ""
+    }
+   ]
+  },
+  {
+   "id": "heart-calm",
+   "world": "soul",
+   "title": "سكينة القلب",
+   "kind": "موعظة",
+   "description": "دقائق تطمئن فيها الروح وسط زحمة الأيام.",
+   "art": "lantern",
+   "cover": "",
+   "narrator": "صوت أثير",
+   "minutes": 4,
+   "chapters": [
+    {
+     "id": "ch1",
+     "title": "أين يهدأ القلب؟",
+     "script": "chapters/heart-calm-ch1.json",
+     "audio": ""
+    }
+   ]
+  },
+  {
+   "id": "hardship-ease",
+   "world": "soul",
+   "title": "مع العسر يسرًا",
+   "kind": "موعظة",
+   "description": "رسالة لكل من ضاقت به الأيام: الفرج أقرب مما تظن.",
+   "art": "morning",
+   "cover": "",
+   "narrator": "صوت أثير",
+   "minutes": 4,
+   "chapters": [
+    {
+     "id": "ch1",
+     "title": "وعدٌ يتكرر",
+     "script": "chapters/hardship-ease-ch1.json",
+     "audio": ""
+    }
+   ]
+  },
+  {
+   "id": "morning-step",
+   "world": "self",
+   "title": "خطوة كل صباح",
+   "kind": "تنمية ذات",
+   "description": "لا تحتاج أن تغيّر حياتك كلها… تحتاج خطوة واحدة كل صباح.",
+   "art": "morning",
+   "cover": "",
+   "narrator": "صوت أثير",
+   "minutes": 4,
+   "chapters": [
+    {
+     "id": "ch1",
+     "title": "الخطوة الأولى",
+     "script": "chapters/morning-step-ch1.json",
+     "audio": ""
+    }
+   ]
+  },
+  {
+   "id": "art-listening",
+   "world": "self",
+   "title": "فن الإصغاء",
+   "kind": "تنمية ذات",
+   "description": "أغلبنا يستمع ليرد… هنا نتعلم أن نستمع لنفهم.",
+   "art": "mind",
+   "cover": "",
+   "narrator": "صوت أثير",
+   "minutes": 4,
+   "chapters": [
+    {
+     "id": "ch1",
+     "title": "أن تسمع حقًا",
+     "script": "chapters/art-listening-ch1.json",
+     "audio": ""
+    }
+   ]
+  },
+  {
+   "id": "letters-self",
+   "world": "reflections",
+   "title": "رسائل إلى نفسي",
+   "kind": "خاطرة",
+   "description": "رسالة قصيرة تكتبها لنفسك… حين تحتاج من يفهمك.",
+   "art": "traveler",
+   "cover": "",
+   "narrator": "صوت أثير",
+   "minutes": 3,
+   "chapters": [
+    {
+     "id": "ch1",
+     "title": "عزيزي أنا",
+     "script": "chapters/letters-self-ch1.json",
+     "audio": ""
+    }
+   ]
+  },
+  {
+   "id": "tea-night",
+   "world": "reflections",
+   "title": "ليل وكوب شاي",
+   "kind": "خاطرة",
+   "description": "منتصف الليل، والبيت نائم، والذكريات أقرب من أي وقت.",
+   "art": "lantern",
+   "cover": "",
+   "narrator": "صوت أثير",
+   "minutes": 3,
+   "chapters": [
+    {
+     "id": "ch1",
+     "title": "بعد منتصف الليل",
+     "script": "chapters/tea-night-ch1.json",
+     "audio": ""
+    }
+   ]
+  }
+ ]
+}

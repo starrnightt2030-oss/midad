@@ -1,0 +1,32 @@
+# Flutter
+.dart_tool/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+build/
+*.iml
+.idea/
+.metadata
+pubspec.lock
+
+# منصات تُولَّد تلقائيًا في GitHub Actions
+android/
+ios/
+web/
+linux/
+macos/
+windows/
+test/
+
+# أداة المحتوى
+tools/.cache/
+__pycache__/
+*.wav
+
+# أسرار
+*.keystore
+*.jks
+key.properties
+.env
