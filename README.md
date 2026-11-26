@@ -95,9 +95,9 @@ git add content && git commit -m "رحلة الليل" && git push
 1. افتح مشروع Supabase ← **SQL Editor** ← الصق محتوى [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) واضغط **Run**.
 2. من **Settings ← API Keys** انسخ مفتاح **service_role / secret**، وضعه في GitHub:
    **Settings ← Secrets and variables ← Actions ← New repository secret** باسم `SUPABASE_SERVICE_ROLE_KEY`.
-3. من تبويب **Actions** شغّل «مزامنة المحتوى مع Supabase» مرة واحدة لنقل المحتوى الحالي.
+3. (اختياري) مهمة «مزامنة المحتوى مع Supabase» في تبويب **Actions** تنقل محتوى `content/` يدويًا. المحتوى الحالي تجريبي فلا تُشغَّل تلقائيًا.
 
-بعدها أي تعديل في `content/` يتزامن تلقائيًا، لحين جاهزية لوحة الإدارة.
+طالما قاعدة Supabase فاضية، التطبيق يعرض المحتوى التجريبي من GitHub. أول ما تُنشر قصة من لوحة الإدارة، التطبيق يعرض محتوى Supabase فقط.
 
 ## الإعداد لأول مرة (مرة واحدة)
 في المستودع: **Settings ← Secrets and variables ← Actions ← New repository secret**

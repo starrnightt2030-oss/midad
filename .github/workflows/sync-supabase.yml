@@ -1,17 +1,9 @@
 name: مزامنة المحتوى مع Supabase
 
 # ينقل محتوى مجلد content/ إلى قاعدة Supabase.
-# مؤقت لحين جاهزية لوحة الإدارة (المرحلة الثالثة)، بعدها تصبح اللوحة هي المصدر.
+# يدوي فقط: المحتوى الحالي تجريبي ولا يُنقل تلقائيًا.
+# المحتوى الحقيقي يُضاف من لوحة الإدارة (المرحلة الثالثة).
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'content/catalog.json'
-      - 'content/chapters/**'
-      - 'tools/sync_supabase.py'
-  workflow_run:
-    workflows: ['توليد الصوت والأغلفة']
-    types: [completed]
   workflow_dispatch:
 
 permissions:
