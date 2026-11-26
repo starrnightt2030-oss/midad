@@ -31,4 +31,22 @@ void main() {
     }
     expect(spokenChunk(line, 59)!.start, greaterThan(40));
   });
+
+  test('التوقيت التقديري يتمدد على مدة الصوت بعد تحميله', () {
+    final s = ChapterScript(lines: [
+      for (var i = 0; i < 20; i++) ScriptLine(speaker: 'الراوي', text: 'جملة رقم $i فيها كلام عادي.'),
+    ], speakerColors: {});
+    s.ensureTimings(); // قبل معرفة مدة الصوت
+    expect(s.estimated, isTrue);
+    s.ensureTimings(targetSeconds: 300);
+    expect(s.lines.last.end, closeTo(300, 5));
+    expect(s.lines.last.words.last.end, closeTo(s.lines.last.end, 0.01));
+  });
+
+  test('التوقيتات الحقيقية لا تتغير', () {
+    final s = ChapterScript(lines: [ScriptLine(speaker: 'الراوي', text: 'أ ب', start: 1, end: 2)], speakerColors: {});
+    s.ensureTimings(targetSeconds: 300);
+    expect(s.estimated, isFalse);
+    expect(s.lines.single.end, 2);
+  });
 }

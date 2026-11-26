@@ -162,6 +162,9 @@ class ChapterScript {
 
   ChapterScript({required this.lines, required this.speakerColors});
 
+  /// التوقيتات تقديرية (النص بلا ضبط توقيت حقيقي).
+  bool estimated = false;
+
   factory ChapterScript.fromJson(Map<String, dynamic> j) {
     final colors = <String, Color>{};
     final sp = j['speakers'];
@@ -205,7 +208,9 @@ class ChapterScript {
   /// [targetSeconds] لو معروف (مدة الصوت) يتم ضبط التقدير عليه.
   void ensureTimings({double? targetSeconds}) {
     final allTimed = lines.isNotEmpty && lines.every((l) => l.hasTiming);
-    if (!allTimed) {
+    // التقدير يُعاد حسابه عند معرفة مدة الصوت؛ التوقيتات الحقيقية (من ضبط التوقيت) لا تُلمس.
+    if (!allTimed || estimated) {
+      estimated = true;
       var t = 0.6;
       for (final l in lines) {
         final chars = l.text.replaceAll(' ', '').length;
