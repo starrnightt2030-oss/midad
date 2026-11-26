@@ -8,6 +8,8 @@ import 'data/repository.dart';
 import 'screens/splash_screen.dart';
 import 'screens/home_shell.dart';
 import 'screens/onboarding_screen.dart';
+import 'state/account.dart';
+import 'state/downloads.dart';
 import 'state/library.dart';
 import 'state/audio_handler.dart';
 import 'state/player.dart';
@@ -24,15 +26,22 @@ Future<void> main() async {
   ));
   final repo = ContentRepository();
   final library = LibraryStore();
-  final player = PlayerController(repo);
+  final account = AccountStore();
+  repo.tokenProvider = account.token;
+  final downloads = DownloadStore(repo);
+  final player = PlayerController(repo)..downloads = downloads;
   player.attachMedia(await initAudioHandler());
   repo.load();
   library.load();
+  account.load();
+  downloads.load();
   runApp(MultiProvider(
     providers: [
       ChangeNotifierProvider.value(value: repo),
       ChangeNotifierProvider.value(value: library),
       ChangeNotifierProvider.value(value: player),
+      ChangeNotifierProvider.value(value: account),
+      ChangeNotifierProvider.value(value: downloads),
       ChangeNotifierProvider.value(value: themes),
     ],
     child: const AtheerApp(),

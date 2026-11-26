@@ -44,6 +44,8 @@ class _SettingsPageState extends State<SettingsPage> {
               ('بالاشتراك', s['premium'], Icons.lock_rounded),
               ('الفصول', s['chapters'], Icons.list_rounded),
               ('فصول بصوت', s['with_audio'], Icons.graphic_eq_rounded),
+              ('المستمعون', s['users'], Icons.people_rounded),
+              ('المشتركون', s['subscribers'], Icons.workspace_premium_rounded),
             ];
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -69,6 +71,7 @@ class _SettingsPageState extends State<SettingsPage> {
           },
         ),
         const SizedBox(height: 20),
+        const _SubscribeSettings(),
         _Section(title: 'الحساب', children: [
           ListTile(
             leading: const Icon(Icons.person_rounded),
@@ -123,5 +126,84 @@ class _Section extends StatelessWidget {
         ]),
       ),
     );
+  }
+}
+
+/// طريقة الاشتراك التي تظهر للمستمعين في التطبيق.
+class _SubscribeSettings extends StatefulWidget {
+  const _SubscribeSettings();
+
+  @override
+  State<_SubscribeSettings> createState() => _SubscribeSettingsState();
+}
+
+class _SubscribeSettingsState extends State<_SubscribeSettings> {
+  final price = TextEditingController();
+  final whatsapp = TextEditingController();
+  final text = TextEditingController();
+  bool busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final rows = await db.from('app_settings').select().like('key', 'public.%');
+      final m = {for (final r in rows) r['key'] as String: r['value']};
+      if (!mounted) return;
+      setState(() {
+        price.text = '${m['public.price'] ?? ''}';
+        whatsapp.text = '${m['public.whatsapp'] ?? ''}';
+        text.text = '${m['public.subscribe_text'] ?? ''}';
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _save() async {
+    setState(() => busy = true);
+    try {
+      await db.from('app_settings').upsert([
+        {'key': 'public.price', 'value': price.text.trim()},
+        {'key': 'public.whatsapp', 'value': whatsapp.text.trim()},
+        {'key': 'public.subscribe_text', 'value': text.text.trim()},
+      ]);
+      if (mounted) toast(context, 'تم الحفظ، وسيظهر في التطبيق');
+    } catch (e) {
+      if (mounted) toast(context, 'تعذّر الحفظ: $e');
+    }
+    if (mounted) setState(() => busy = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _Section(title: 'الاشتراك في التطبيق', children: [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+        child: Column(children: [
+          TextField(controller: price, decoration: const InputDecoration(labelText: 'السعر (مثال: ٥٠ جنيه شهريًا)')),
+          const SizedBox(height: 10),
+          TextField(
+            controller: whatsapp,
+            keyboardType: TextInputType.phone,
+            textDirection: TextDirection.ltr,
+            decoration: const InputDecoration(labelText: 'رقم واتساب للاشتراك (بالكود الدولي، مثال 2010xxxxxxxx)'),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: text,
+            maxLines: 3,
+            decoration: const InputDecoration(labelText: 'طريقة الدفع (مثال: حوّل على فودافون كاش ثم ابعت صورة التحويل)'),
+          ),
+          const SizedBox(height: 10),
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: FilledButton(onPressed: busy ? null : _save, child: Text(busy ? 'جارٍ…' : 'حفظ')),
+          ),
+        ]),
+      ),
+    ]);
   }
 }

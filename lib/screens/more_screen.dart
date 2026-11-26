@@ -3,10 +3,12 @@ import 'package:provider/provider.dart';
 
 import '../config.dart';
 import '../data/updates.dart';
+import '../state/account.dart';
 import '../state/library.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import 'about_screen.dart';
+import 'account_screen.dart';
 
 /// المزيد: اختيار الثيم، حجم الخط، والإعدادات العامة.
 class MoreScreen extends StatelessWidget {
@@ -16,10 +18,22 @@ class MoreScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final lib = context.watch<LibraryStore>();
     final themes = context.watch<ThemeController>();
+    final acc = context.watch<AccountStore>();
     return SafeArea(
       bottom: false,
       child: ListView(padding: const EdgeInsets.fromLTRB(20, 14, 20, 24), children: [
         Text('المزيد', style: MidadText.title(size: 26)),
+        const SizedBox(height: 16),
+        _Section(children: [
+          ListTile(
+            leading: Icon(acc.premium ? Icons.workspace_premium_rounded : Icons.person_outline_rounded, color: acc.premium ? MidadColors.accent : null),
+            title: Text(acc.signedIn ? (acc.email ?? 'حسابي') : 'تسجيل الدخول', style: MidadText.ui(weight: FontWeight.w600)),
+            subtitle: Text(acc.premium ? 'مشترك' : (acc.signedIn ? 'غير مشترك — اعرف طريقة الاشتراك' : 'احفظ اشتراكك على حسابك'),
+                style: MidadText.ui(size: 12, color: Colors.white60)),
+            trailing: const Icon(Icons.chevron_left_rounded),
+            onTap: () => Navigator.of(context).push(fadeRoute(const AccountScreen())),
+          ),
+        ]),
         const SizedBox(height: 20),
         Text('ألوان التطبيق', style: MidadText.ui(size: 13, color: Colors.white60)),
         const SizedBox(height: 10),

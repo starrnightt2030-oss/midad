@@ -4,12 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models.dart';
+import '../state/account.dart';
+import '../state/downloads.dart';
 import '../state/library.dart';
 import '../state/player.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/cover_art.dart';
 import '../widgets/mini_player.dart';
+import 'account_screen.dart';
 import 'actions.dart';
 
 class WorkScreen extends StatelessWidget {
@@ -116,6 +119,7 @@ class WorkScreen extends StatelessWidget {
                     const SizedBox(width: 10),
                     _Round(icon: Icons.menu_book_rounded, label: 'اقرأ', onTap: () => readPage(context, work, chapter: lib.lastChapter[work.id] ?? 0)),
                   ]),
+                  if (work.download) _DownloadRow(work: work),
                   const SizedBox(height: 26),
                   Text('الفصول', style: MidadText.ui(size: 16, weight: FontWeight.w700)),
                   const SizedBox(height: 6),
@@ -185,6 +189,52 @@ class _Round extends StatelessWidget {
           onTap: onTap,
           child: Glass(radius: 27, opacity: 0.1, child: SizedBox(width: 54, height: 54, child: Icon(icon))),
         ),
+      ),
+    );
+  }
+}
+
+/// تحميل القصة للاستماع بدون إنترنت (لو سمحت اللوحة بذلك).
+class _DownloadRow extends StatelessWidget {
+  final Work work;
+  const _DownloadRow({required this.work});
+
+  @override
+  Widget build(BuildContext context) {
+    final dl = context.watch<DownloadStore>();
+    final acc = context.watch<AccountStore>();
+    final progress = dl.active[work.id];
+    final done = dl.isDone(work.id);
+    return Padding(
+      padding: const EdgeInsets.only(top: 14),
+      child: Glass(
+        radius: 18,
+        opacity: 0.08,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Row(children: [
+          Icon(done ? Icons.download_done_rounded : Icons.download_rounded, color: done ? MidadColors.accent : null),
+          const SizedBox(width: 10),
+          Expanded(
+            child: progress != null
+                ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('جارٍ التحميل ${arNum((progress * 100).round())}٪', style: MidadText.ui(size: 13)),
+                    const SizedBox(height: 6),
+                    LinearProgressIndicator(value: progress, minHeight: 3, color: MidadColors.accent, backgroundColor: Colors.white12),
+                  ])
+                : Text(done ? 'محمّلة، تعمل بدون إنترنت' : 'حمّلها للاستماع بدون إنترنت', style: MidadText.ui(size: 13)),
+          ),
+          if (progress == null)
+            TextButton(
+              onPressed: () async {
+                if (done) return dl.remove(work);
+                if (work.premium && !acc.premium) return showPaywall(context);
+                final messenger = ScaffoldMessenger.of(context);
+                final err = await dl.download(work);
+                if (err != null) messenger.showSnackBar(SnackBar(content: Text(err, style: MidadText.ui())));
+              },
+              child: Text(done ? 'حذف' : 'تحميل'),
+            ),
+        ]),
       ),
     );
   }
