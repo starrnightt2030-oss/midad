@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
@@ -24,6 +26,9 @@ class _WorkEditorState extends State<WorkEditor> {
   final minutes = TextEditingController(text: '0');
   late String worldId = widget.worlds.first['id'] as String;
   String cover = '';
+  String scene = '';
+  Map<String, Map<String, dynamic>> jobs = {};
+  Timer? _poll;
   bool premium = false, download = false, published = false;
   List<Map<String, dynamic>> chapters = [];
   bool loading = true, busy = false;
@@ -34,6 +39,42 @@ class _WorkEditorState extends State<WorkEditor> {
     id = widget.workId;
     _load();
   }
+
+  @override
+  void dispose() {
+    _poll?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadJobs() async {
+    if (id == null) return;
+    final j = await db.from('voice_jobs').select().eq('work_id', id!).order('created_at');
+    if (!mounted) return;
+    final map = {for (final x in j) x['chapter_id'] as String: Map<String, dynamic>.from(x)};
+    final active = map.values.any((x) => x['status'] == 'pending' || x['status'] == 'running');
+    final wasActive = jobs.values.any((x) => x['status'] == 'pending' || x['status'] == 'running');
+    setState(() => jobs = map);
+    if (wasActive && !active) _load();
+    _poll?.cancel();
+    if (active) _poll = Timer(const Duration(seconds: 15), _loadJobs);
+  }
+
+  Future<void> _generate(Map<String, dynamic> ch) async {
+    try {
+      await enqueueVoice(id!, ch['id'] as String);
+      if (mounted) toast(context, 'تم طلب توليد الصوت؛ يجهز خلال دقائق');
+      _loadJobs();
+    } catch (e) {
+      if (mounted) toast(context, 'تعذّر الطلب: $e');
+    }
+  }
+
+  String? _jobLabel(Map<String, dynamic>? j) => switch (j?['status']) {
+        'pending' => 'في انتظار التوليد…',
+        'running' => 'جارٍ التوليد ${j!['progress'] ?? ''}',
+        'failed' => 'فشل التوليد: ${j!['error']}',
+        _ => null,
+      };
 
   Future<void> _load() async {
     if (id == null) return setState(() => loading = false);
@@ -52,8 +93,10 @@ class _WorkEditorState extends State<WorkEditor> {
       download = w['allow_download'] == true;
       published = w['published'] == true;
       chapters = List<Map<String, dynamic>>.from(c);
+      scene = w['scene'] as String? ?? '';
       loading = false;
     });
+    _loadJobs();
   }
 
   Future<void> _pickCover() async {
@@ -88,6 +131,7 @@ class _WorkEditorState extends State<WorkEditor> {
       'is_premium': premium,
       'allow_download': download,
       'published': published,
+      'scene': scene,
     };
     try {
       if (id == null) {
@@ -187,6 +231,13 @@ class _WorkEditorState extends State<WorkEditor> {
                           const SizedBox(width: 10),
                           SizedBox(width: 110, child: TextField(controller: minutes, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'دقائق'))),
                         ]),
+                        const SizedBox(height: 10),
+                        DropdownButtonFormField<String>(
+                          initialValue: kScenes.any((x) => x.$1 == scene) ? scene : '',
+                          decoration: const InputDecoration(labelText: 'مشهد المشغّل المتحرك'),
+                          items: [for (final (v, label) in kScenes) DropdownMenuItem(value: v, child: Text(label))],
+                          onChanged: (v) => setState(() => scene = v ?? ''),
+                        ),
                       ]),
                     ),
                   ]),
@@ -216,8 +267,14 @@ class _WorkEditorState extends State<WorkEditor> {
                           '${((ch['script'] as Map?)?['lines'] as List?)?.length ?? 0} سطر',
                           (ch['audio'] ?? '') != '' || (ch['audio_path'] ?? '') != '' ? 'فيه صوت' : 'بدون صوت',
                           if (scriptHasTimings(ch['script'] as Map<String, dynamic>?)) 'متزامن',
+                          if (_jobLabel(jobs[ch['id']]) != null) _jobLabel(jobs[ch['id']])!,
                         ].join(' • ')),
                         trailing: Wrap(children: [
+                          IconButton(
+                            tooltip: 'توليد الصوت بالذكاء الاصطناعي',
+                            onPressed: const ['pending', 'running'].contains(jobs[ch['id']]?['status']) ? null : () => _generate(ch),
+                            icon: const Icon(Icons.auto_awesome_rounded),
+                          ),
                           IconButton(tooltip: 'تعديل', onPressed: () => _editChapter(ch), icon: const Icon(Icons.edit_rounded)),
                           IconButton(tooltip: 'حذف', onPressed: () => _deleteChapter(ch), icon: const Icon(Icons.delete_outline_rounded)),
                         ]),
@@ -249,6 +306,23 @@ class _ChapterDialogState extends State<ChapterDialog> {
   late String audioPath = widget.chapter?['audio_path'] as String? ?? '';
   String? audioName;
   bool busy = false;
+  bool generate = false;
+  late final Map<String, String> voices = {
+    for (final e in (((widget.chapter?['script'] as Map?)?['speakers'] as Map?) ?? const {}).entries)
+      if (e.value is Map && (e.value as Map)['voice'] != null) e.key as String: (e.value as Map)['voice'] as String,
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    text.addListener(() => setState(() {}));
+  }
+
+  String _defaultVoice(String name, int i) {
+    if (name == 'الراوي') return 'Charon';
+    const others = ['Aoede', 'Puck', 'Fenrir', 'Leda', 'Orus', 'Kore'];
+    return others[(i - 1) % others.length];
+  }
 
   Future<void> _pickAudio() async {
     final f = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: ['mp3', 'm4a', 'aac', 'wav', 'ogg']);
@@ -279,16 +353,18 @@ class _ChapterDialogState extends State<ChapterDialog> {
     if (title.text.trim().isEmpty) return toast(context, 'اكتب عنوان الفصل');
     setState(() => busy = true);
     // لو النص لم يتغيّر نحتفظ بالتوقيتات القديمة.
-    final script = text.text.trim() == originalText.trim() && widget.chapter != null
-        ? widget.chapter!['script']
-        : scriptFromText(text.text);
+    final old = widget.chapter?['script'] as Map<String, dynamic>?;
+    final same = text.text.trim() == originalText.trim() && old != null;
+    final script = mergeSpeakers(same ? old : scriptFromText(text.text), old, voices);
     final row = {'title': title.text.trim(), 'script': script, 'audio': audio, 'audio_path': audioPath};
     try {
+      final chId = widget.chapter?['id'] as String? ?? 'ch${DateTime.now().millisecondsSinceEpoch}';
       if (widget.chapter == null) {
-        await db.from('chapters').insert({...row, 'work_id': widget.workId, 'id': 'ch${DateTime.now().millisecondsSinceEpoch}', 'sort_order': widget.nextOrder});
+        await db.from('chapters').insert({...row, 'work_id': widget.workId, 'id': chId, 'sort_order': widget.nextOrder});
       } else {
-        await db.from('chapters').update(row).eq('work_id', widget.workId).eq('id', widget.chapter!['id']);
+        await db.from('chapters').update(row).eq('work_id', widget.workId).eq('id', chId);
       }
+      if (generate) await enqueueVoice(widget.workId, chId);
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
@@ -341,6 +417,31 @@ class _ChapterDialogState extends State<ChapterDialog> {
                 padding: EdgeInsets.only(top: 6),
                 child: Text('القصة باشتراك: الصوت يُحفظ في مكان محمي.', style: TextStyle(fontSize: 12, color: Colors.white54)),
               ),
+            const Divider(height: 28),
+            Text('أصوات المتحدثين (للتوليد بالذكاء الاصطناعي)', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 8),
+            for (final (i, name) in speakersOf(text.text).indexed)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(children: [
+                  SizedBox(width: 110, child: Text(name, overflow: TextOverflow.ellipsis)),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      initialValue: voices[name] ?? _defaultVoice(name, i),
+                      isDense: true,
+                      items: [for (final (v, label) in kVoices) DropdownMenuItem(value: v, child: Text('$label ($v)'))],
+                      onChanged: (v) => setState(() => voices[name] = v!),
+                    ),
+                  ),
+                ]),
+              ),
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              value: generate,
+              onChanged: (v) => setState(() => generate = v == true),
+              title: const Text('ولّد صوت الفصل بعد الحفظ'),
+              subtitle: const Text('يجهز خلال دقائق، ويستبدل الصوت الحالي، والنص يتزامن تلقائيًا.'),
+            ),
           ]),
         ),
       ),

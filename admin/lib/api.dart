@@ -72,3 +72,62 @@ String textFromScript(Map<String, dynamic>? script, {String narrator = 'الرا
 /// هل في النص توقيتات حقيقية (من توليد الصوت)؟
 bool scriptHasTimings(Map<String, dynamic>? script) =>
     ((script?['lines'] as List?) ?? const []).any((l) => l is Map && l['start'] != null);
+
+/// أصوات Gemini المتاحة للتوليد.
+const kVoices = <(String, String)>[
+  ('Charon', 'رجالي عميق هادئ'),
+  ('Orus', 'رجالي ثابت'),
+  ('Iapetus', 'رجالي واضح'),
+  ('Algieba', 'رجالي ناعم'),
+  ('Fenrir', 'رجالي حماسي'),
+  ('Puck', 'رجالي مرح'),
+  ('Sulafat', 'نسائي دافئ'),
+  ('Kore', 'نسائي ثابت'),
+  ('Achernar', 'نسائي ناعم'),
+  ('Aoede', 'نسائي خفيف'),
+  ('Leda', 'نسائي شاب'),
+  ('Zephyr', 'نسائي مشرق'),
+];
+
+/// مشاهد المشغّل المتحركة.
+const kScenes = <(String, String)>[
+  ('', 'تلقائي'),
+  ('night', 'ليل ونجوم'),
+  ('rain', 'مطر'),
+  ('sea', 'بحر'),
+  ('forest', 'غابة ويراعات'),
+  ('desert', 'صحراء'),
+  ('snow', 'ثلج'),
+  ('embers', 'نار هادئة'),
+];
+
+/// يضيف طلب توليد صوت لفصل؛ العامل على GitHub ينفّذه خلال دقائق.
+Future<void> enqueueVoice(String workId, String chapterId) async {
+  await db.from('voice_jobs').delete().eq('work_id', workId).eq('chapter_id', chapterId).inFilter('status', ['done', 'failed']);
+  final open = await db.from('voice_jobs').select('id').eq('work_id', workId).eq('chapter_id', chapterId).inFilter('status', ['pending', 'running']);
+  if (open.isEmpty) await db.from('voice_jobs').insert({'work_id': workId, 'chapter_id': chapterId});
+}
+
+/// يدمج إعدادات المتحدثين القديمة (اللون والصوت) في نص جديد.
+Map<String, dynamic> mergeSpeakers(Map<String, dynamic> script, Map<String, dynamic>? old, Map<String, String> voices) {
+  final sp = Map<String, dynamic>.from(script['speakers'] as Map? ?? {});
+  final oldSp = (old?['speakers'] as Map?) ?? const {};
+  for (final name in sp.keys.toList()) {
+    final base = Map<String, dynamic>.from(sp[name] is Map ? sp[name] as Map : {'color': sp[name]});
+    if (oldSp[name] is Map) base.addAll(Map<String, dynamic>.from(oldSp[name] as Map));
+    if (voices[name] != null) base['voice'] = voices[name];
+    sp[name] = base;
+  }
+  return {...script, 'speakers': sp};
+}
+
+/// أسماء المتحدثين بترتيب ظهورهم في النص.
+List<String> speakersOf(String text, {String narrator = 'الراوي'}) {
+  final s = scriptFromText(text, narrator: narrator);
+  final names = <String>[narrator];
+  for (final l in (s['lines'] as List)) {
+    final n = (l as Map)['speaker'] as String;
+    if (!names.contains(n)) names.add(n);
+  }
+  return names;
+}

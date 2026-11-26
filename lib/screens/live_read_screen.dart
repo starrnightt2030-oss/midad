@@ -9,6 +9,7 @@ import '../state/player.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/cover_art.dart';
+import '../widgets/scene_layer.dart';
 import 'quote_screen.dart';
 import 'reader_screen.dart';
 
@@ -34,7 +35,7 @@ class LiveReadScreen extends StatelessWidget {
         Positioned.fill(
           child: ImageFiltered(
             imageFilter: ImageFilter.blur(sigmaX: 4, sigmaY: 4, tileMode: TileMode.decal),
-            child: Transform.scale(scale: 1.12, child: CoverArt(art: w.art, url: w.cover)),
+            child: SlowZoom(child: CoverArt(art: w.art, url: w.cover)),
           ),
         ),
         Positioned.fill(
@@ -49,6 +50,7 @@ class LiveReadScreen extends StatelessWidget {
             ),
           ),
         ),
+        Positioned.fill(child: SceneLayer(scene: SceneLayer.resolve(w.scene, w.art), tint: color)),
         SafeArea(
           child: Column(children: [
             Padding(
