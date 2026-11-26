@@ -99,6 +99,24 @@ def align_words(script_words, heard):
     return [(round(a, 2), round(b, 2)) for a, b in times]
 
 
+_SENT = re.compile(r'(?<=[.!؟?…])\s+')
+
+
+def split_long_lines(script, limit=160):
+    """نص ملصوق كفقرة واحدة يصير سطرًا واحدًا طويلًا: نقسمه جملًا (بنفس المتحدث) قبل الضبط.
+    يرجع عدد السطور الجديدة المضافة."""
+    lines = script.get('lines') or []
+    out = []
+    for ln in lines:
+        text = (ln.get('text') or '').strip()
+        parts = [p.strip() for p in _SENT.split(text)] if len(text) > limit else [text]
+        parts = [p for p in parts if p] or [text]
+        for p in parts:
+            out.append({**{k: v for k, v in ln.items() if k not in ('start', 'end', 'words')}, 'text': p})
+    script['lines'] = out
+    return len(out) - len(lines)
+
+
 def apply_to_script(script, heard):
     """يضع start و end و words لكل سطر في نص الفصل. يرجع نسبة الكلمات التي طابقت فعلًا."""
     lines = script.get('lines') or []

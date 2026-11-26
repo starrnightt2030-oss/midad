@@ -15,6 +15,7 @@ import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/cover_art.dart';
 import '../widgets/scene_layer.dart';
+import '../widgets/spoken_phrase.dart';
 import 'ambient_gallery_screen.dart';
 import 'live_read_screen.dart';
 import 'quote_screen.dart';
@@ -215,14 +216,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: AmbientColors.panel(radius: 18, opacity: 0.35),
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 400),
-                  child: Text(line.text,
-                      key: ValueKey(p.lineIndex),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: MidadText.book(size: 16, color: ivory, height: 1.7)),
+                child: SpokenPhrase(
+                  maxLines: 2,
+                  highlight: gold,
+                  style: MidadText.book(size: 16, color: ivory, height: 1.7),
                 ),
               ),
             ),
@@ -250,7 +247,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                 Text(fmtDuration(p.position), style: MidadText.ui(size: 11, color: Colors.white70)),
-                if (p.demo) Text('عرض نصي — الصوت قريبًا', style: MidadText.ui(size: 10, color: Colors.white54)),
+                if (p.demo)
+                  Flexible(
+                    child: Text('عرض نصي — الصوت قريبًا',
+                        maxLines: 1, overflow: TextOverflow.ellipsis, style: MidadText.ui(size: 10, color: Colors.white54)),
+                  ),
                 Text(fmtDuration(p.duration), style: MidadText.ui(size: 11, color: Colors.white70)),
               ]),
             ),
@@ -530,10 +531,7 @@ class _CinematicLayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final line = context.select<PlayerController, String?>((p) {
-      final s = p.script;
-      return (s != null && s.lines.isNotEmpty) ? s.lines[p.lineIndex].text : null;
-    });
+    final hasLine = context.select<PlayerController, bool>((p) => p.script?.lines.isNotEmpty ?? false);
     final title = context.select<PlayerController, String>((p) => p.work?.title ?? '');
     return GestureDetector(
       behavior: onExit == null ? HitTestBehavior.deferToChild : HitTestBehavior.opaque,
@@ -544,14 +542,12 @@ class _CinematicLayer extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(28, 0, 28, 36),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-              if (line != null)
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 700),
-                  child: Text(line,
-                      key: ValueKey(line),
-                      textAlign: TextAlign.center,
-                      style: MidadText.book(size: 19, color: AmbientColors.softIvory, height: 1.8)
-                          .copyWith(shadows: const [Shadow(color: Colors.black87, blurRadius: 12)])),
+              if (hasLine)
+                SpokenPhrase(
+                  fade: const Duration(milliseconds: 700),
+                  highlight: AmbientColors.warmGold,
+                  style: MidadText.book(size: 21, color: AmbientColors.softIvory, height: 1.8)
+                      .copyWith(shadows: const [Shadow(color: Colors.black87, blurRadius: 12)]),
                 ),
               const SizedBox(height: 10),
               Text(title, style: MidadText.ui(size: 11, color: AmbientColors.warmGold.withValues(alpha: 0.8))),

@@ -39,11 +39,12 @@ Future<String> uploadFile({required String bucket, required String folder, requi
 }
 
 /// يحوّل النص إلى سطور القصة. كل سطر جملة؛ «اسم: كلام» لتحديد المتحدث، والسطر بلا اسم للراوي.
+/// الفقرات الطويلة (نص ملصوق كقطعة واحدة) تُقسَم جملًا، حتى تتابع القراءة الحية الصوت سطرًا سطرًا.
 Map<String, dynamic> scriptFromText(String text, {String narrator = 'الراوي'}) {
   final speakers = <String, dynamic>{narrator: {'color': '#B794F6'}};
   final lines = <Map<String, dynamic>>[];
   const palette = ['#F2B8D8', '#8FDCB0', '#5ED3E0', '#F0B35A', '#F2A7A0'];
-  for (final raw in text.split('\n')) {
+  for (final raw in prepareImportedText(text).split('\n')) {
     final t = raw.trim();
     if (t.isEmpty) continue;
     var speaker = narrator;

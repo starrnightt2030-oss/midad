@@ -11,6 +11,7 @@ import 'package:atheer/screens/player_screen.dart';
 import 'package:atheer/state/library.dart';
 import 'package:atheer/state/player.dart';
 import 'package:atheer/theme.dart';
+import 'package:atheer/widgets/spoken_phrase.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -57,7 +58,14 @@ void main() {
           minutes: 12,
           chapters: [ChapterRef(id: 'c1', title: 'الفصل الأول', script: '')])
       ..duration = const Duration(minutes: 12)
-      ..position = const Duration(minutes: 3);
+      ..position = const Duration(minutes: 3)
+      // القصة كلها في سطر واحد بلا توقيتات: يجب أن تظهر العبارة المنطوقة فقط.
+      ..script = (ChapterScript(lines: [
+        ScriptLine(speaker: 'الراوي', text: List.generate(120, (i) => i % 8 == 7 ? 'كلام$i،' : 'كلام$i').join(' ')),
+      ], speakerColors: {})
+        ..ensureTimings(targetSeconds: 720))
+      ..demo = true
+      ..wordIndex = 30;
     return (sel, player, LibraryStore(), repo);
   }
 
@@ -112,6 +120,13 @@ void main() {
           .ancestor(of: find.text('حكاية القمر والبحيرة').first, matching: find.byType(AnimatedOpacity))
           .first);
       expect(words.opacity, 1);
+      // المعروض هو العبارة المنطوقة الآن فقط، مش نص القصة كله.
+      for (final rt in tester.widgetList<RichText>(find.descendant(of: find.byType(SpokenPhrase), matching: find.byType(RichText)))) {
+        final shown = rt.text.toPlainText();
+        expect(shown, contains('كلام30'));
+        expect(shown.split(' ').length, lessThanOrEqualTo(9));
+      }
+      await shot(tester, key, 'player_hidden_${size.width.toInt()}');
       await tester.tapAt(Offset(size.width / 2, size.height / 2));
       await tester.pump(const Duration(milliseconds: 500));
       final back = tester.widget<IgnorePointer>(find.ancestor(of: find.text('تستمع الآن'), matching: find.byType(IgnorePointer)).first);

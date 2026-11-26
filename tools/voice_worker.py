@@ -264,6 +264,9 @@ def process_align(job):
         dur = wf.getnframes() / wf.getframerate()
     log(f'  الصوت {dur / 60:.1f} دقيقة، {size // 1024} ك.ب')
 
+    added = aligner.split_long_lines(script)
+    if added:
+        log(f'  تقسيم الفقرات الطويلة: +{added} سطر')
     report = progress_reporter(job)
     prompt = ' '.join(ln['text'] for ln in script['lines'])
     heard = aligner.transcribe(str(wav), prompt, lambda t, total: report(t, total, f'يسمع الصوت… {min(99, int(t * 100 / total))}%'))
