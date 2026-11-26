@@ -74,6 +74,17 @@
 1. في Supabase ← SQL Editor: شغّل `supabase/migrations/0003_voice.sql` (لازم للطريقتين).
 2. في GitHub ← Settings ← Secrets and variables ← Actions: أضف `GEMINI_API_KEY` (مفتاح مجاني من https://aistudio.google.com/apikey).
 
+### تشغيل الطلبات فورًا (مستحسن)
+جدولة GitHub «كل ١٠ دقائق» قد تتأخر ساعات. لتبدأ «ضبط التوقيت» و«توليد الصوت» فور الضغط:
+1. في GitHub ← Settings ← Developer settings ← Personal access tokens ← **Fine-grained tokens** ← Generate new token:
+   - Repository access: **Only select repositories** ← `midad`.
+   - Permissions ← Repository permissions ← **Actions: Read and write** (فقط).
+   - Expiration: أطول مدة متاحة، وجدّده قبل انتهائه.
+2. في Supabase ← SQL Editor: شغّل `supabase/migrations/0005_voice_dispatch.sql`.
+3. في SQL Editor نفسه: `select vault.create_secret('github_pat_...', 'github_dispatch_token');` (ضع المفتاح مكان `github_pat_...`).
+
+بعدها أي طلب جديد يبدأ خلال ثوانٍ، ويجهز ضبط التوقيت عادةً في ٣–٥ دقائق. لو المفتاح انتهى أو غير موجود، تعود الجدولة كاحتياطي تلقائيًا.
+
 ## الحسابات والاشتراك
 
 - المستمع ينشئ حسابًا من «المزيد ← تسجيل الدخول». القصص المقفولة تعرض شاشة الاشتراك.
