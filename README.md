@@ -68,6 +68,19 @@
 1. في Supabase ← SQL Editor: شغّل `supabase/migrations/0003_voice.sql`.
 2. في GitHub ← Settings ← Secrets and variables ← Actions: أضف `GEMINI_API_KEY` (مفتاح مجاني من https://aistudio.google.com/apikey).
 
+## الحسابات والاشتراك
+
+- المستمع ينشئ حسابًا من «المزيد ← تسجيل الدخول». القصص المقفولة تعرض شاشة الاشتراك.
+- من تطبيق الإدارة ← «المستمعون»: ابحث بالبريد وفعّل الاشتراك (شهر، ٣ شهور، سنة، دائم).
+- من «الإعدادات» في اللوحة: السعر ورقم واتساب وطريقة الدفع التي تظهر للمستمعين.
+- القصص المسموح بتحميلها يظهر فيها زر «تحميل» للاستماع بدون إنترنت.
+
+التجهيز (مرة واحدة):
+1. في Supabase ← SQL Editor: شغّل `supabase/migrations/0004_members.sql`.
+2. في Supabase ← Authentication ← Sign In / Providers ← Email: أطفئ **Confirm email** (البريد المجاني في Supabase محدود برسائل قليلة في الساعة).
+
+خطوات النشر على Google Play في [docs/launch.md](docs/launch.md).
+
 ## الإعداد لأول مرة (مرة واحدة)
 في المستودع: **Settings ← Secrets and variables ← Actions ← New repository secret**
 - `GEMINI_API_KEY` — لتوليد الصوت (من aistudio.google.com).

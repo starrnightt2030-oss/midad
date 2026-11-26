@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api.dart';
+import 'members.dart';
 import 'settings.dart';
 import 'works.dart';
 import 'worlds.dart';
@@ -19,13 +20,14 @@ class _AdminHomeState extends State<AdminHome> {
   static const _dest = [
     (icon: Icons.auto_stories_outlined, active: Icons.auto_stories_rounded, label: 'القصص'),
     (icon: Icons.grid_view_outlined, active: Icons.grid_view_rounded, label: 'الأقسام'),
+    (icon: Icons.people_outline_rounded, active: Icons.people_rounded, label: 'المستمعون'),
     (icon: Icons.tune_outlined, active: Icons.tune_rounded, label: 'الإعدادات'),
   ];
 
   @override
   Widget build(BuildContext context) {
     final wide = MediaQuery.sizeOf(context).width >= 800;
-    final page = switch (tab) { 0 => const WorksPage(), 1 => const WorldsPage(), _ => const SettingsPage() };
+    final page = switch (tab) { 0 => const WorksPage(), 1 => const WorldsPage(), 2 => const MembersPage(), _ => const SettingsPage() };
     final actions = [
       IconButton(tooltip: 'تسجيل الخروج', onPressed: () => db.auth.signOut(), icon: const Icon(Icons.logout_rounded)),
     ];

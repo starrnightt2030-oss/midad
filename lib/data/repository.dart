@@ -30,15 +30,21 @@ class ContentRepository extends ChangeNotifier {
 
   bool get _hasSupabase => AppConfig.supabaseUrl.isNotEmpty && AppConfig.supabaseKey.isNotEmpty;
 
-  Map<String, String> get _sbHeaders => {
+  /// رمز المستخدم المسجّل (يضبطه main من AccountStore)، وإلا المفتاح العام.
+  Future<String> Function()? tokenProvider;
+
+  Future<Map<String, String>> _sbHeaders() async => {
         'apikey': AppConfig.supabaseKey,
-        'Authorization': 'Bearer ${AppConfig.supabaseKey}',
+        'Authorization': 'Bearer ${tokenProvider == null ? AppConfig.supabaseKey : await tokenProvider!()}',
         'Content-Type': 'application/json',
       };
 
+  /// مسارات صوت الفصول المدفوعة (من chapter_json للمشترك).
+  final Map<String, String> _premiumAudio = {};
+
   Future<String?> _rpc(String fn, [Map<String, dynamic> args = const {}]) async {
     final r = await http
-        .post(Uri.parse('${AppConfig.supabaseUrl}/rest/v1/rpc/$fn'), headers: _sbHeaders, body: jsonEncode(args))
+        .post(Uri.parse('${AppConfig.supabaseUrl}/rest/v1/rpc/$fn'), headers: await _sbHeaders(), body: jsonEncode(args))
         .timeout(AppConfig.remoteTimeout);
     if (r.statusCode != 200) {
       debugPrint('supabase $fn: HTTP ${r.statusCode}');
@@ -147,6 +153,30 @@ class ContentRepository extends ChangeNotifier {
 
   static const _sbPrefix = 'sb:';
 
+  /// رابط مؤقت لصوت فصل مدفوع (للمشترك فقط). يُستدعى بعد loadScript.
+  Future<String?> signedAudio(ChapterRef ch) async {
+    if (!ch.script.startsWith(_sbPrefix)) return null;
+    final ref = ch.script.substring(_sbPrefix.length);
+    var path = _premiumAudio[ref];
+    if (path == null) {
+      final prefs = await SharedPreferences.getInstance();
+      final cached = prefs.getString('midad_script_sb_$ref');
+      if (cached != null) path = '${(jsonDecode(cached) as Map)['audio_path'] ?? ''}';
+    }
+    if (path == null || path.isEmpty) return null;
+    try {
+      final r = await http
+          .post(Uri.parse('${AppConfig.supabaseUrl}/storage/v1/object/sign/premium/$path'),
+              headers: await _sbHeaders(), body: jsonEncode({'expiresIn': 6 * 3600}))
+          .timeout(AppConfig.remoteTimeout);
+      if (r.statusCode != 200) return null;
+      final u = (jsonDecode(r.body) as Map)['signedURL'] as String?;
+      return u == null ? null : '${AppConfig.supabaseUrl}/storage/v1$u';
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<ChapterScript> loadScript(ChapterRef ch) async {
     final prefs = await SharedPreferences.getInstance();
     String? body;
@@ -159,7 +189,16 @@ class ContentRepository extends ChangeNotifier {
       if (slash > 0) {
         try {
           body = await _rpc('chapter_json', {'p_work': ref.substring(0, slash), 'p_chapter': ref.substring(slash + 1)});
-          if (body != null) await prefs.setString(key, body);
+          if (body != null) {
+            final j = jsonDecode(body) as Map<String, dynamic>;
+            if (j['locked'] == true) {
+              // مقفول لغير المشترك: لا نحفظه حتى يظهر النص كاملًا بعد الاشتراك
+              return ChapterScript(lines: [], speakerColors: {});
+            }
+            final ap = '${j['audio_path'] ?? ''}';
+            if (ap.isNotEmpty) _premiumAudio[ref] = ap;
+            await prefs.setString(key, body);
+          }
         } catch (e) {
           debugPrint('supabase chapter failed: $e');
         }

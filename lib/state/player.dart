@@ -7,11 +7,15 @@ import '../config.dart';
 import '../data/repository.dart';
 import '../models.dart';
 import 'audio_handler.dart';
+import 'downloads.dart';
 
 /// يتحكم في صوت الراوي، الموسيقى الخلفية، والتزامن مع النص.
 /// لو الفصل ليس له ملف صوت بعد، يعمل بـ"ساعة عرض" تقديرية حتى تظهر القراءة الحية.
 class PlayerController extends ChangeNotifier {
   final ContentRepository repo;
+
+  /// التحميلات (لتشغيل الملفات المحفوظة بدون إنترنت).
+  DownloadStore? downloads;
   PlayerController(this.repo) {
     _subs.add(_voice.positionStream.listen((p) {
       if (!demo) {
@@ -126,11 +130,22 @@ class PlayerController extends ChangeNotifier {
     script = await repo.loadScript(ch);
     script!.ensureTimings();
 
-    demo = ch.audio == null;
+    // الأولوية: ملف محمّل على الجهاز، ثم الرابط العام، ثم رابط مؤقت لصوت المشترك.
+    final local = downloads?.localPath(w, ch);
+    String? signed;
+    if (local == null && ch.audio == null && w.premium) signed = await repo.signedAudio(ch);
+    demo = local == null && ch.audio == null && signed == null;
     if (!demo) {
       try {
-        final r = repo.resolve(ch.audio!);
-        final d = r.remote ? await _voice.setUrl(r.path) : await _voice.setAsset(r.path);
+        final Duration? d;
+        if (local != null) {
+          d = await _voice.setFilePath(local);
+        } else if (signed != null) {
+          d = await _voice.setUrl(signed);
+        } else {
+          final r = repo.resolve(ch.audio!);
+          d = r.remote ? await _voice.setUrl(r.path) : await _voice.setAsset(r.path);
+        }
         if (d != null) {
           duration = d;
           script!.ensureTimings(targetSeconds: d.inMilliseconds / 1000);

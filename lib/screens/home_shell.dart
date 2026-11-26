@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../data/repository.dart';
 import '../data/updates.dart';
+import '../state/account.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/mini_player.dart';
@@ -48,6 +49,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     if (state != AppLifecycleState.resumed) return;
     final repo = context.read<ContentRepository>();
     final messenger = ScaffoldMessenger.of(context);
+    context.read<AccountStore>().refreshStatus();
     await repo.refreshSilently();
     if (repo.newItems > 0) {
       messenger.showSnackBar(SnackBar(
