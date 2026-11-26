@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
-عامل توليد الصوت لأثير (يعمل على GitHub Actions).
+عامل الصوت لأثير (يعمل على GitHub Actions).
 
-يقرأ طلبات «توليد الصوت» التي تضيفها لوحة الإدارة في جدول voice_jobs،
-ويولّد صوت كل فصل بـ Gemini TTS سطرًا سطرًا، فتكون توقيتات القراءة الحية دقيقة لكل سطر،
-ثم يرفع الملف إلى Supabase Storage ويحدّث الفصل.
+يقرأ الطلبات التي تضيفها لوحة الإدارة في جدول voice_jobs، وله نوعان:
+- align (الأساسي): الصوت مرفوع جاهز من اللوحة، فنضبط توقيت كل سطر وكلمة من النص عليه بـ Whisper.
+- tts (اختياري): نولّد صوت الفصل بـ Gemini TTS سطرًا سطرًا.
+ثم يُحدَّث الفصل في Supabase.
 
-المتغيرات: SUPABASE_SERVICE_ROLE_KEY, GEMINI_API_KEY (و SUPABASE_URL اختياري).
+المتغيرات: SUPABASE_SERVICE_ROLE_KEY، و GEMINI_API_KEY لطلبات التوليد فقط (و SUPABASE_URL اختياري).
 """
 import json
 import os
@@ -21,6 +22,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import atheer_studio as studio  # noqa: E402  (نعيد استخدام توليد السطر وقص الصمت)
+import aligner  # noqa: E402
 
 URL = os.environ.get('SUPABASE_URL', 'https://scrynlokpplwolbltghf.supabase.co').rstrip('/')
 KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
@@ -167,7 +169,7 @@ def encode_m4a(pcm, name):
     return m4a.read_bytes()
 
 
-def process(client, job):
+def load_chapter(job):
     wid, cid = job['work_id'], job['chapter_id']
     ch = select('chapters', f'work_id=eq.{q(wid)}&id=eq.{q(cid)}&select=*')
     wk = select('works', f'id=eq.{q(wid)}&select=id,title,world_id,is_premium')
@@ -175,17 +177,34 @@ def process(client, job):
         raise RuntimeError('الفصل أو القصة غير موجودة')
     ch, wk = ch[0], wk[0]
     world = select('worlds', f'id=eq.{q(wk["world_id"])}&select=is_premium')
-    premium = wk['is_premium'] or (world and world[0]['is_premium'])
-    log(f'▶ {wk["title"]} / {ch["title"]} {"(اشتراك)" if premium else ""}')
+    premium = bool(wk['is_premium'] or (world and world[0]['is_premium']))
+    log(f'▶ [{job.get("kind") or "tts"}] {wk["title"]} / {ch["title"]} {"(اشتراك)" if premium else ""}')
+    return ch, wk, premium
 
+
+def progress_reporter(job):
     last = [0.0]
 
-    def on_progress(n, total):
-        if time.time() - last[0] > 20 or n == total:
+    def on_progress(n, total, label=None):
+        if time.time() - last[0] > 20 or n >= total:
             last[0] = time.time()
-            set_job(job['id'], progress=f'{n}/{total}')
-            log(f'  {n}/{total}')
+            txt = label or f'{n}/{total}'
+            set_job(job['id'], progress=txt)
+            log(f'  {txt}')
+    return on_progress
 
+
+def update_minutes(wid):
+    """مدة القصة = مجموع فصولها."""
+    durs = select('chapters', f'work_id=eq.{q(wid)}&select=duration_seconds')
+    minutes = max(1, round(sum(float(d['duration_seconds'] or 0) for d in durs) / 60))
+    patch('works', f'id=eq.{q(wid)}', {'minutes': minutes})
+
+
+def process_tts(client, job):
+    wid, cid = job['work_id'], job['chapter_id']
+    ch, wk, premium = load_chapter(job)
+    on_progress = progress_reporter(job)
     script = ch['script'] or {}
     pcm, dur = synthesize(client, script, on_progress)
     data = encode_m4a(pcm, f'{wid}-{cid}')
@@ -200,12 +219,80 @@ def process(client, job):
     patch('chapters', f'work_id=eq.{q(wid)}&id=eq.{q(cid)}', row)
     remove_old(ch.get('audio'), 'audio')
     remove_old(ch.get('audio_path'), 'premium')
-
-    # مدة القصة = مجموع فصولها
-    durs = select('chapters', f'work_id=eq.{q(wid)}&select=duration_seconds')
-    minutes = max(1, round(sum(float(d['duration_seconds'] or 0) for d in durs) / 60))
-    patch('works', f'id=eq.{q(wid)}', {'minutes': minutes})
+    update_minutes(wid)
     log(f'  ✔ {dur / 60:.1f} دقيقة، {len(data) // 1024} ك.ب')
+
+
+# ---------------------------------------------------------------- ضبط صوت مرفوع
+def audio_source(ch):
+    """(الحاوية، المسار) لملف الفصل المرفوع."""
+    if ch.get('audio_path'):
+        return 'premium', ch['audio_path']
+    marker = '/storage/v1/object/public/audio/'
+    a = ch.get('audio') or ''
+    if marker in a:
+        return 'audio', urllib.parse.unquote(a.split(marker, 1)[1].split('?')[0])
+    return None, a
+
+
+def download_audio(ch, dest):
+    bucket, path = audio_source(ch)
+    if bucket:
+        data = _req('GET', f'/storage/v1/object/{bucket}/{urllib.parse.quote(path)}', raw=True)
+    elif path.startswith('http'):
+        with urllib.request.urlopen(path, timeout=300) as res:
+            data = res.read()
+    else:
+        raise RuntimeError('ارفع ملف صوت الفصل أولًا ثم اطلب ضبط التوقيت')
+    dest.write_bytes(data)
+    return bucket, path, len(data)
+
+
+def process_align(job):
+    wid, cid = job['work_id'], job['chapter_id']
+    ch, wk, premium = load_chapter(job)
+    script = ch['script'] or {}
+    if not script.get('lines'):
+        raise RuntimeError('اكتب نص الفصل أو ارفعه أولًا')
+    studio.CACHE.mkdir(parents=True, exist_ok=True)
+    src = studio.CACHE / f'align-{wid}-{cid}.src'
+    wav = studio.CACHE / f'align-{wid}-{cid}.wav'
+    bucket, path, size = download_audio(ch, src)
+    set_job(job['id'], progress='يسمع الصوت…')
+    subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', str(src), '-ac', '1', '-ar', '16000', str(wav)], check=True)
+    with wave.open(str(wav)) as wf:
+        dur = wf.getnframes() / wf.getframerate()
+    log(f'  الصوت {dur / 60:.1f} دقيقة، {size // 1024} ك.ب')
+
+    report = progress_reporter(job)
+    prompt = ' '.join(ln['text'] for ln in script['lines'])
+    heard = aligner.transcribe(str(wav), prompt, lambda t, total: report(t, total, f'يسمع الصوت… {min(99, int(t * 100 / total))}%'))
+    if not heard:
+        raise RuntimeError('لم يُسمع كلام في ملف الصوت')
+    ratio = aligner.apply_to_script(script, heard)
+    log(f'  التطابق بين النص والصوت: {ratio:.0%}')
+    if ratio < 0.25:
+        raise RuntimeError(f'النص لا يطابق الصوت (التطابق {ratio:.0%} فقط). تأكد أنه نص نفس التسجيل')
+
+    row = {'script': script, 'duration_seconds': round(dur, 2)}
+    # ملفات wav كبيرة جدًا على المساحة المجانية: نضغطها إلى m4a ونستبدلها
+    if bucket and path.lower().endswith(('.wav', '.flac')):
+        m4a = studio.CACHE / f'align-{wid}-{cid}.m4a'
+        subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', str(src), '-af', 'loudnorm=I=-18:TP=-1.5',
+                        '-c:a', 'aac', '-b:a', '80k', '-movflags', '+faststart', str(m4a)], check=True)
+        data = m4a.read_bytes()
+        new_path = f'{wid}/{cid}-{int(time.time())}.m4a'
+        upload(bucket, new_path, data)
+        if bucket == 'premium':
+            row.update(audio='', audio_path=new_path)
+        else:
+            row.update(audio=f'{URL}/storage/v1/object/public/audio/{new_path}', audio_path='')
+        log(f'  ضغط الصوت: {size // 1024} ← {len(data) // 1024} ك.ب')
+    patch('chapters', f'work_id=eq.{q(wid)}&id=eq.{q(cid)}', row)
+    if 'audio_path' in row and bucket:
+        remove_old(path if bucket == 'premium' else ch.get('audio'), bucket)
+    update_minutes(wid)
+    log(f'  ✔ {len(script["lines"])} سطر متزامن')
 
 
 def main():
@@ -219,20 +306,24 @@ def main():
     if not jobs:
         log('لا توجد طلبات.')
         return
-    gemini = os.environ.get('GEMINI_API_KEY', '')
-    if not gemini:
-        for j in jobs:
-            set_job(j['id'], status='failed', error='أضف مفتاح GEMINI_API_KEY في أسرار GitHub (مجاني من Google AI Studio)')
-        sys.exit('GEMINI_API_KEY غير موجود')
-
-    from google import genai
-    client = genai.Client(api_key=gemini)
+    client = None
     for job in jobs:
+        tts = (job.get('kind') or 'tts') == 'tts'
+        if tts and client is None:
+            gemini = os.environ.get('GEMINI_API_KEY', '')
+            if not gemini:
+                set_job(job['id'], status='failed', error='توليد الصوت يحتاج مفتاح GEMINI_API_KEY في أسرار GitHub (مجاني من Google AI Studio). أو ارفع صوتك واطلب ضبط التوقيت')
+                continue
+            from google import genai
+            client = genai.Client(api_key=gemini)
         claimed = patch('voice_jobs', f'id=eq.{job["id"]}&status=eq.pending', {'status': 'running', 'error': '', 'progress': ''}, ret=True)
         if not claimed:
             continue
         try:
-            process(client, job)
+            if tts:
+                process_tts(client, job)
+            else:
+                process_align(job)
             set_job(job['id'], status='done', progress='')
         except TimeoutError as e:
             set_job(job['id'], status='pending', progress=str(e))

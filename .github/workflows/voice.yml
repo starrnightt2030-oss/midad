@@ -1,6 +1,6 @@
 name: توليد الصوت
 
-# لوحة الإدارة تضيف طلبات «توليد الصوت»، وهذا العامل ينفّذها كل ١٠ دقائق (مجاني للمستودعات العامة).
+# لوحة الإدارة تضيف طلبات «ضبط التوقيت» أو «توليد الصوت»، وهذا العامل ينفّذها كل ١٠ دقائق (مجاني للمستودعات العامة).
 on:
   schedule:
     - cron: '*/10 * * * *'
@@ -42,7 +42,7 @@ jobs:
         name: الأدوات
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
-          pip install -q google-genai
+          pip install -q google-genai faster-whisper
 
       - if: steps.check.outputs.n != '0'
         uses: actions/cache@v4
@@ -51,6 +51,13 @@ jobs:
           key: tts-${{ github.run_id }}
           restore-keys: tts-
 
+      # نموذج Whisper (حوالي ١.٥ جيجا) يُحمَّل مرة ويُحفظ
       - if: steps.check.outputs.n != '0'
-        name: توليد
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: whisper-medium-v1
+
+      - if: steps.check.outputs.n != '0'
+        name: تنفيذ الطلبات
         run: python tools/voice_worker.py
