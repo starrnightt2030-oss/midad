@@ -37,6 +37,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   supabase_flutter: ^2.18.3
   file_picker: ^13.4.1
+  just_audio: ^0.9.42
   google_fonts: ^6.2.1
   flutter_localizations:
     sdk: flutter

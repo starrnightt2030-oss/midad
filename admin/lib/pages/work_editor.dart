@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../api.dart';
 import '../theme.dart';
 import 'home.dart';
+import 'preview.dart';
 
 /// إضافة أو تعديل قصة: البيانات، الغلاف، الإعدادات، والفصول (النص والصوت).
 class WorkEditor extends StatefulWidget {
@@ -157,6 +158,34 @@ class _WorkEditorState extends State<WorkEditor> {
     }
   }
 
+  /// يفتح المعاينة بالبيانات الحالية (حتى غير المحفوظة)؛ ومنها يمكن النشر مباشرة.
+  Future<void> _preview() async {
+    if (chapters.isEmpty) return toast(context, 'أضف فصلًا الأول عشان تعاين القصة');
+    final world = widget.worlds.where((w) => w['id'] == worldId).firstOrNull;
+    final publish = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => StoryPreviewPage(
+          title: title.text.trim(),
+          narrator: narrator.text.trim(),
+          category: (world?['name'] as String?) ?? kind.text.trim(),
+          cover: cover,
+          scene: scene,
+          published: published,
+          chapters: chapters,
+        ),
+      ),
+    );
+    if (publish != true || !mounted) return;
+    setState(() => published = true);
+    if (await _save(quiet: true)) {
+      if (mounted) toast(context, 'تم نشر القصة في التطبيق ✓');
+    } else if (mounted) {
+      setState(() => published = false);
+    }
+  }
+
   Future<void> _delete() async {
     if (id == null) return Navigator.pop(context);
     if (!await confirm(context, 'حذف القصة', 'ستُحذف القصة وكل فصولها نهائيًا.')) return;
@@ -186,6 +215,8 @@ class _WorkEditorState extends State<WorkEditor> {
       appBar: AppBar(
         title: Text(id == null ? 'قصة جديدة' : 'تعديل القصة'),
         actions: [
+          if (id != null && chapters.isNotEmpty)
+            TextButton.icon(onPressed: busy ? null : _preview, icon: const Icon(Icons.visibility_outlined), label: const Text('معاينة')),
           if (id != null) IconButton(tooltip: 'حذف القصة', onPressed: busy ? null : _delete, icon: const Icon(Icons.delete_outline_rounded)),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -249,6 +280,14 @@ class _WorkEditorState extends State<WorkEditor> {
                   Card(
                     child: Column(children: [
                       SwitchListTile(value: published, onChanged: (v) => setState(() => published = v), title: const Text('منشورة في التطبيق'), subtitle: const Text('اقفلها لحد ما تخلص الفصول والصوت')),
+                      if (chapters.isNotEmpty)
+                        ListTile(
+                          leading: const Icon(Icons.visibility_outlined, color: kAccent),
+                          title: const Text('عاين القصة قبل النشر'),
+                          subtitle: const Text('شوفها زي المستمع بالظبط: المشهد والصوت والكلام المتزامن'),
+                          trailing: const Icon(Icons.chevron_left_rounded),
+                          onTap: busy ? null : _preview,
+                        ),
                       SwitchListTile(value: premium, onChanged: (v) => setState(() => premium = v), title: const Text('باشتراك'), subtitle: const Text('تظهر بقفل لغير المشتركين')),
                       SwitchListTile(value: download, onChanged: (v) => setState(() => download = v), title: const Text('مسموح بالتحميل'), subtitle: const Text('الاستماع بدون إنترنت')),
                     ]),
