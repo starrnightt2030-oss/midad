@@ -231,12 +231,19 @@ class _Featured extends StatelessWidget {
                   ],
                   const SizedBox(height: 16),
                   Row(children: [
-                    AccentButton(
-                      label: 'استمع الآن',
-                      icon: Icons.play_arrow_rounded,
-                      height: 46,
-                      onTap: () => listenTo(context, work, chapter: lib.lastChapter[work.id] ?? 0),
+                    Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: AlignmentDirectional.centerStart,
+                        child: AccentButton(
+                          label: 'استمع الآن',
+                          icon: Icons.play_arrow_rounded,
+                          height: 46,
+                          onTap: () => listenTo(context, work, chapter: lib.lastChapter[work.id] ?? 0),
+                        ),
+                      ),
                     ),
+                    const SizedBox(width: 12),
                     const Spacer(),
                     HeartButton(workId: work.id, size: 44),
                   ]),

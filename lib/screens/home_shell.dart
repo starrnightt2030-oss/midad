@@ -115,8 +115,8 @@ class _NavBar extends StatelessWidget {
           ),
           child: SafeArea(
             top: false,
-            child: SizedBox(
-              height: 64,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 64),
               child: Row(children: [
                 for (var i = 0; i < _HomeShellState._items.length; i++)
                   Expanded(
@@ -126,7 +126,8 @@ class _NavBar extends StatelessWidget {
                       label: _HomeShellState._items[i].label,
                       child: InkResponse(
                         onTap: () => onTap(i),
-                        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        child: Column(mainAxisSize: MainAxisSize.min, children: [
+                          const SizedBox(height: 6),
                           AnimatedContainer(
                             duration: const Duration(milliseconds: 250),
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -143,6 +144,7 @@ class _NavBar extends StatelessWidget {
                                   size: 11,
                                   weight: i == index ? FontWeight.w700 : FontWeight.w500,
                                   color: i == index ? Colors.white : Colors.white60)),
+                          const SizedBox(height: 6),
                         ]),
                       ),
                     ),
