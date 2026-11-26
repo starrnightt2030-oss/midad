@@ -123,12 +123,24 @@ def apply_to_script(script, heard):
     return difflib.SequenceMatcher(None, s, h, autojunk=False).ratio() if h else 0.0
 
 
+def load_wav16k(path):
+    """يقرأ ملف wav أحادي 16 كيلوهرتز (من ffmpeg) كمصفوفة، بدون مكتبة av."""
+    import wave
+
+    import numpy as np
+    with wave.open(str(path)) as wf:
+        if wf.getframerate() != 16000 or wf.getnchannels() != 1 or wf.getsampwidth() != 2:
+            raise RuntimeError('الصوت يجب أن يكون wav أحادي 16 كيلوهرتز')
+        pcm = wf.readframes(wf.getnframes())
+    return np.frombuffer(pcm, dtype=np.int16).astype(np.float32) / 32768.0
+
+
 def transcribe(wav_path, prompt='', on_progress=None):
-    """يرجع [(كلمة, بداية, نهاية), ...] من ملف صوت."""
+    """يرجع [(كلمة, بداية, نهاية), ...] من ملف wav أحادي 16 كيلوهرتز."""
     from faster_whisper import WhisperModel
     model = WhisperModel(MODEL, device='cpu', compute_type='int8')
     segments, info = model.transcribe(
-        wav_path, language='ar', word_timestamps=True, vad_filter=True, beam_size=5,
+        load_wav16k(wav_path), language='ar', word_timestamps=True, vad_filter=True, beam_size=5,
         initial_prompt=prompt[:400] or None, condition_on_previous_text=False)
     out = []
     for seg in segments:
