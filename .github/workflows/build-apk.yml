@@ -80,7 +80,11 @@ jobs:
           --dart-define=BUILD_NUMBER=${{ github.run_number }}
 
       - name: تسمية الملف
-        run: cp build/app/outputs/flutter-apk/app-release.apk "atheer-v${{ steps.v.outputs.version }}-b${{ github.run_number }}.apk"
+        run: |
+          cp build/app/outputs/flutter-apk/app-release.apk "atheer-v${{ steps.v.outputs.version }}-b${{ github.run_number }}.apk"
+          # نسخة باسم ثابت: رابط تحميل مباشر لا يتغير لآخر إصدار
+          # https://github.com/<owner>/<repo>/releases/latest/download/atheer.apk
+          cp build/app/outputs/flutter-apk/app-release.apk atheer.apk
 
       - uses: actions/upload-artifact@v4
         with:
@@ -94,5 +98,7 @@ jobs:
           tag_name: v${{ steps.v.outputs.version }}-b${{ github.run_number }}
           name: أثير ${{ steps.v.outputs.version }} — بناء ${{ github.run_number }}
           body: ${{ github.event.head_commit.message || 'تحسينات وإصلاحات' }}
-          files: atheer-*.apk
+          files: |
+            atheer-*.apk
+            atheer.apk
           make_latest: true

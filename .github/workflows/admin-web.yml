@@ -83,6 +83,7 @@ jobs:
           flutter pub get
           flutter build apk --release --build-name=1.0.0 --build-number=${{ github.run_number }}
           cp build/app/outputs/flutter-apk/app-release.apk ../atheer-admin-b${{ github.run_number }}.apk
+          cp build/app/outputs/flutter-apk/app-release.apk ../atheer-admin.apk
       - uses: actions/upload-artifact@v4
         with:
           name: atheer-admin-apk
@@ -94,5 +95,17 @@ jobs:
           tag_name: admin-b${{ github.run_number }}
           name: إدارة أثير — بناء ${{ github.run_number }}
           body: تطبيق لوحة الإدارة. نزّل ملف APK وثبّته على موبايلك.
-          files: atheer-admin-*.apk
+          files: atheer-admin-b*.apk
+          make_latest: false
+      # إصدار ثابت «admin» يُستبدل ملفه كل مرة: رابط تحميل مباشر لا يتغير
+      # https://github.com/<owner>/<repo>/releases/download/admin/atheer-admin.apk
+      - name: تحديث رابط التحميل الثابت
+        if: github.event_name != 'pull_request'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: admin
+          name: إدارة أثير — آخر إصدار
+          body: آخر نسخة من تطبيق لوحة الإدارة (تُحدَّث تلقائيًا). نزّل atheer-admin.apk وثبّته.
+          files: atheer-admin.apk
+          overwrite_files: true
           make_latest: false
