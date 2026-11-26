@@ -50,6 +50,15 @@ class Work {
   final int minutes;
   final List<ChapterRef> chapters;
 
+  /// يحتاج اشتراك (من لوحة الإدارة).
+  final bool premium;
+
+  /// مسموح بالاستماع بدون إنترنت.
+  final bool download;
+
+  /// مشهد الخلفية المتحركة في المشغّل.
+  final String scene;
+
   Work({
     required this.id,
     required this.worldId,
@@ -61,6 +70,9 @@ class Work {
     required this.minutes,
     required this.chapters,
     this.cover,
+    this.premium = false,
+    this.download = false,
+    this.scene = '',
   });
 
   factory Work.fromJson(Map<String, dynamic> j) => Work(
@@ -72,8 +84,11 @@ class Work {
         art: (j['art'] ?? 'storm') as String,
         cover: (j['cover'] as String?)?.trim().isEmpty == true ? null : j['cover'] as String?,
         narrator: (j['narrator'] ?? '') as String,
-        minutes: (j['minutes'] ?? 0) as int,
+        minutes: (j['minutes'] as num?)?.toInt() ?? 0,
         chapters: ((j['chapters'] ?? []) as List).map((c) => ChapterRef.fromJson(c as Map<String, dynamic>)).toList(),
+        premium: j['premium'] == true,
+        download: j['download'] == true,
+        scene: (j['scene'] ?? '') as String,
       );
 }
 
