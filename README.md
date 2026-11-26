@@ -57,6 +57,15 @@
 
 كتابة الفصل: كل سطر جملة. لتحديد متحدث اكتب `الاسم: الكلام`، والسطر بلا اسم للراوي.
 
+## توليد الصوت بالذكاء الاصطناعي
+
+من محرر القصة في لوحة الإدارة: زر ✨ بجانب الفصل (أو «ولّد صوت الفصل بعد الحفظ» داخل الفصل). اختر صوت كل متحدث من القائمة.
+الطلب يُنفَّذ تلقائيًا على GitHub Actions كل ١٠ دقائق (workflow «توليد الصوت»)، ويُرفع الصوت ويتزامن النص سطرًا بسطر.
+
+التجهيز (مرة واحدة):
+1. في Supabase ← SQL Editor: شغّل `supabase/migrations/0003_voice.sql`.
+2. في GitHub ← Settings ← Secrets and variables ← Actions: أضف `GEMINI_API_KEY` (مفتاح مجاني من https://aistudio.google.com/apikey).
+
 ## الإعداد لأول مرة (مرة واحدة)
 في المستودع: **Settings ← Secrets and variables ← Actions ← New repository secret**
 - `GEMINI_API_KEY` — لتوليد الصوت (من aistudio.google.com).
