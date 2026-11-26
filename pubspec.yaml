@@ -25,7 +25,6 @@ flutter:
   uses-material-design: true
   assets:
     - content/
-    - content/chapters/
     - content/ambience/
     - assets/brand/
     - assets/sounds/

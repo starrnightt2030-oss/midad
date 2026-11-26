@@ -1,12 +1,7 @@
 name: توليد الصوت والأغلفة
 
+# المحتوى صار في Supabase عبر لوحة الإدارة؛ هذا المسار القديم يعمل يدويًا فقط.
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'content/catalog.json'
-      - 'content/chapters/**'
-      - 'content/covers/**'
   workflow_dispatch:
     inputs:
       work:

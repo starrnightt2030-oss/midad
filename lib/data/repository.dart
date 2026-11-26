@@ -8,11 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../config.dart';
 import '../models.dart';
 
-/// مصدر المحتوى، بالترتيب:
-/// ١) Supabase (المصدر الأساسي، تديره لوحة الإدارة)
-/// ٢) GitHub (احتياطي أثناء الانتقال)
-/// ٣) آخر نسخة محفوظة على الجهاز
-/// ٤) النسخة المدمجة داخل التطبيق
+/// مصدر المحتوى: Supabase فقط (تديره لوحة الإدارة).
+/// بدون إنترنت نعرض آخر نسخة محفوظة منه. الأجواء الصوتية مدمجة في التطبيق.
 class ContentRepository extends ChangeNotifier {
   Catalog? catalog;
   bool loading = true;
@@ -51,95 +48,87 @@ class ContentRepository extends ChangeNotifier {
     return body == 'null' ? null : body;
   }
 
-  /// يجلب الفهرس من الإنترنت: Supabase أولًا ثم GitHub.
-  Future<({String body, String source})?> _fetchRemote() async {
-    if (_hasSupabase) {
-      try {
-        final body = await _rpc('catalog_json');
-        if (body != null) {
-          final c = Catalog.fromJson(jsonDecode(body) as Map<String, dynamic>);
-          // قاعدة فارغة (قبل نقل المحتوى) = نكمل على GitHub.
-          if (c.works.isNotEmpty) return (body: body, source: 'supabase');
-        }
-      } catch (e) {
-        debugPrint('supabase catalog failed: $e');
-      }
+  /// يجلب الفهرس من Supabase. القاعدة الفارغة فهرس صحيح (بدون قصص بعد).
+  Future<String?> _fetchRemote() async {
+    if (!_hasSupabase) return null;
+    try {
+      final body = await _rpc('catalog_json');
+      if (body != null) Catalog.fromJson(jsonDecode(body) as Map<String, dynamic>); // تحقق من الشكل
+      return body;
+    } catch (e) {
+      debugPrint('supabase catalog failed: $e');
+      return null;
     }
-    if (AppConfig.remoteContentBase.isNotEmpty) {
-      try {
-        final r = await http
-            .get(Uri.parse('${AppConfig.remoteContentBase}catalog.json?t=${DateTime.now().millisecondsSinceEpoch ~/ 60000}'))
-            .timeout(AppConfig.remoteTimeout);
-        if (r.statusCode == 200) return (body: utf8.decode(r.bodyBytes), source: 'github');
-      } catch (e) {
-        debugPrint('github catalog failed: $e');
-      }
-    }
-    return null;
   }
 
-  void _apply(String body, String src) {
-    catalog = Catalog.fromJson(jsonDecode(body) as Map<String, dynamic>);
+  /// الأجواء الصوتية المدمجة (تُستخدم لو لم تُضف أجواء من اللوحة).
+  Future<List<Ambience>> _bundledAmbience() async {
+    try {
+      final s = await rootBundle.loadString('${AppConfig.bundledContentBase}catalog.json');
+      return Catalog.fromJson(jsonDecode(s) as Map<String, dynamic>).ambience;
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  Future<void> _apply(String body, String src) async {
+    var c = Catalog.fromJson(jsonDecode(body) as Map<String, dynamic>);
+    if (c.ambience.isEmpty) {
+      c = Catalog(version: c.version, worlds: c.worlds, works: c.works, ambience: await _bundledAmbience());
+    }
+    catalog = c;
     source = src;
-    // المسارات النسبية (الأجواء، الأغلفة) تُحلّ على GitHub في الحالتين.
-    _base = AppConfig.remoteContentBase;
-    _baseIsRemote = true;
+    // الأغلفة والصوت روابط كاملة؛ المسارات النسبية (الأجواء) من داخل التطبيق.
+    _base = AppConfig.bundledContentBase;
+    _baseIsRemote = false;
   }
 
   /// تحديث صامت في الخلفية (عند رجوع المستخدم للتطبيق).
   Future<void> refreshSilently() async {
     final before = catalog?.works.map((w) => w.id).toSet() ?? {};
     try {
-      final got = await _fetchRemote();
-      if (got == null) return;
-      _apply(got.body, got.source);
+      final body = await _fetchRemote();
+      if (body == null) return;
+      await _apply(body, 'supabase');
       newItems = catalog!.works.where((w) => !before.contains(w.id)).length;
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_cacheKey, got.body);
-      await prefs.setString(_cacheSourceKey, got.source);
+      await prefs.setString(_cacheKey, body);
+      await prefs.setString(_cacheSourceKey, 'supabase');
       notifyListeners();
     } catch (_) {}
   }
 
   Future<void> load({bool refresh = false}) async {
     loading = true;
+    error = null;
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
 
-    // ١ و٢) من الإنترنت
-    try {
-      final got = await _fetchRemote();
-      if (got != null) {
-        _apply(got.body, got.source);
-        await prefs.setString(_cacheKey, got.body);
-        await prefs.setString(_cacheSourceKey, got.source);
+    // ١) من Supabase
+    final body = await _fetchRemote();
+    if (body != null) {
+      try {
+        await _apply(body, 'supabase');
+        await prefs.setString(_cacheKey, body);
+        await prefs.setString(_cacheSourceKey, 'supabase');
         _done();
         return;
+      } catch (e) {
+        debugPrint('catalog apply failed: $e');
       }
-    } catch (e) {
-      debugPrint('remote catalog failed: $e');
     }
 
-    // ٣) آخر نسخة محفوظة
+    // ٢) آخر نسخة محفوظة من Supabase (المحتوى التجريبي القديم يُتجاهل)
     final cached = prefs.getString(_cacheKey);
-    if (cached != null) {
+    if (cached != null && prefs.getString(_cacheSourceKey) == 'supabase') {
       try {
-        _apply(cached, 'cache');
+        await _apply(cached, 'cache');
         _done();
         return;
       } catch (_) {}
     }
 
-    // ٤) النسخة المدمجة
-    try {
-      final s = await rootBundle.loadString('${AppConfig.bundledContentBase}catalog.json');
-      catalog = Catalog.fromJson(jsonDecode(s) as Map<String, dynamic>);
-      source = 'bundled';
-      _base = AppConfig.bundledContentBase;
-      _baseIsRemote = false;
-    } catch (e) {
-      error = 'تعذّر تحميل المكتبة';
-    }
+    error = 'تحتاج اتصالًا بالإنترنت لتحميل المكتبة أول مرة';
     _done();
   }
 
