@@ -49,6 +49,8 @@
 لوحة ويب في مجلد `admin/` لإدارة كل المحتوى: الأقسام، القصص، الفصول، الأغلفة، الصوت، القفل بالاشتراك، والسماح بالتحميل. تُنشر تلقائيًا على GitHub Pages:
 `https://starrnightt2030-oss.github.io/midad/`
 
+**على الموبايل:** نزّل تطبيق «إدارة أثير» من صفحة Releases (الإصدارات التي تبدأ بـ `admin-`) وثبّته، وسجّل الدخول بنفس الحساب.
+
 التجهيز (مرة واحدة):
 1. في Supabase ← SQL Editor: شغّل محتوى `supabase/migrations/0002_admin.sql`.
 2. في Supabase ← Authentication ← Users ← Add user: أنشئ حسابك (بريد وكلمة مرور، مع Auto Confirm).
