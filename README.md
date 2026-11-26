@@ -99,6 +99,19 @@ git add content && git commit -m "رحلة الليل" && git push
 
 طالما قاعدة Supabase فاضية، التطبيق يعرض المحتوى التجريبي من GitHub. أول ما تُنشر قصة من لوحة الإدارة، التطبيق يعرض محتوى Supabase فقط.
 
+## لوحة الإدارة
+
+لوحة ويب في مجلد `admin/` لإدارة كل المحتوى: الأقسام، القصص، الفصول، الأغلفة، الصوت، القفل بالاشتراك، والسماح بالتحميل. تُنشر تلقائيًا على GitHub Pages:
+`https://starrnightt2030-oss.github.io/midad/`
+
+التجهيز (مرة واحدة):
+1. في Supabase ← SQL Editor: شغّل محتوى `supabase/migrations/0002_admin.sql`.
+2. في Supabase ← Authentication ← Users ← Add user: أنشئ حسابك (بريد وكلمة مرور، مع Auto Confirm).
+3. في GitHub ← Settings ← Pages ← Source: اختر **GitHub Actions**، ثم شغّل workflow «لوحة الإدارة» مرة.
+4. افتح اللوحة وسجّل الدخول. **أول حساب يدخل يصبح المدير**، وأي حساب بعده لا يرى شيئًا.
+
+كتابة الفصل: كل سطر جملة. لتحديد متحدث اكتب `الاسم: الكلام`، والسطر بلا اسم للراوي.
+
 ## الإعداد لأول مرة (مرة واحدة)
 في المستودع: **Settings ← Secrets and variables ← Actions ← New repository secret**
 - `GEMINI_API_KEY` — لتوليد الصوت (من aistudio.google.com).
