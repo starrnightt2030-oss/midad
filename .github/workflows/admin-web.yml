@@ -3,13 +3,13 @@ name: لوحة الإدارة
 on:
   push:
     branches: [main]
-    paths: ['admin/**', '.github/workflows/admin-web.yml']
+    paths: ['admin/**', 'tools/ci/patch_admin_android.py', '.github/workflows/admin-web.yml']
   pull_request:
-    paths: ['admin/**', '.github/workflows/admin-web.yml']
+    paths: ['admin/**', 'tools/ci/patch_admin_android.py', '.github/workflows/admin-web.yml']
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -51,3 +51,48 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  # تطبيق أندرويد للوحة الإدارة (نفس الكود)، يُنشر كإصدار منفصل لا يختلط بتحديثات تطبيق المستمع.
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: تجهيز مشروع أندرويد
+        working-directory: admin
+        run: |
+          flutter create --platforms=android --org com.eldawly --project-name atheer_admin .
+          rm -rf test
+          python3 ../tools/ci/patch_admin_android.py
+      - name: مفتاح التوقيع الثابت
+        env:
+          KEY_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        run: |
+          mkdir -p ~/.android
+          if [ -n "$KEY_B64" ]; then echo "$KEY_B64" | base64 -d > ~/.android/debug.keystore; fi
+      - name: بناء APK
+        working-directory: admin
+        run: |
+          flutter pub get
+          flutter build apk --release --build-name=1.0.0 --build-number=${{ github.run_number }}
+          cp build/app/outputs/flutter-apk/app-release.apk ../atheer-admin-b${{ github.run_number }}.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: atheer-admin-apk
+          path: atheer-admin-*.apk
+      - name: نشر الإصدار
+        if: github.event_name != 'pull_request'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: admin-b${{ github.run_number }}
+          name: إدارة أثير — بناء ${{ github.run_number }}
+          body: تطبيق لوحة الإدارة. نزّل ملف APK وثبّته على موبايلك.
+          files: atheer-admin-*.apk
+          make_latest: false
