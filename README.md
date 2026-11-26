@@ -29,64 +29,9 @@
 
 ---
 
-## كيف أضيف محتوى؟ (بدون تعديل الكود)
+## كيف أضيف محتوى؟
 
-كل المحتوى موجود في مجلد [`content/`](content). التطبيق يقرأه من GitHub مباشرة،
-فأي إضافة تظهر للمستخدمين تلقائيًا **بدون بناء نسخة جديدة**.
-
-### الطريقة ١ — من موقع GitHub مباشرة
-1. أنشئ ملف الفصل داخل `content/chapters/` مثل `night-journey-ch1.json`:
-   ```json
-   {
-    "title": "البداية",
-    "speakers": {
-     "الراوي": {"color": "#E8B04B", "voice": "Charon", "style": "راوٍ دافئ بنبرة درامية"},
-     "ليلى":  {"color": "#F2B8D8", "voice": "Aoede",  "style": "فتاة هادئة"}
-    },
-    "lines": [
-     {"speaker": "الراوي", "text": "كانت الليلة طويلة..."},
-     {"speaker": "ليلى", "text": "«هل تسمع ذلك الصوت؟»"}
-    ]
-   }
-   ```
-2. أضف العمل في `content/catalog.json` داخل `works`:
-   ```json
-   {
-    "id": "night-journey", "world": "stories", "title": "رحلة الليل", "kind": "قصة",
-    "description": "وصف قصير يظهر تحت الغلاف", "art": "storm", "cover": "",
-    "narrator": "صوت أثير", "minutes": 0,
-    "chapters": [{"id": "ch1", "title": "البداية", "script": "chapters/night-journey-ch1.json", "audio": ""}]
-   }
-   ```
-3. **الغلاف**: ارفع صورة باسم المعرّف في `content/covers/` (مثل `night-journey.jpg`) — تُضبط وتُربط تلقائيًا.
-   لو لم ترفع غلافًا، يرسم التطبيق غلافًا فنيًا حسب `art`.
-4. احفظ (Commit) — سير العمل **«توليد الصوت والأغلفة»** يولّد الصوت بالذكاء الاصطناعي،
-   ويحسب توقيت كل كلمة للقراءة الحية، ويضبط الغلاف، ويحفظ كل شيء تلقائيًا.
-
-### الطريقة ٢ — من جهازك بالأداة
-```bash
-pip install google-genai pillow     # ويلزم ffmpeg
-export GEMINI_API_KEY=...            # مفتاح مجاني من Google AI Studio
-
-python tools/atheer_studio.py add-work --id night-journey --world stories \
-  --title "رحلة الليل" --kind قصة --desc "..." --art storm --cover ~/cover.jpg
-python tools/atheer_studio.py add-chapter --work night-journey --title "البداية" --text ch1.txt
-python tools/atheer_studio.py voice --work night-journey
-python tools/atheer_studio.py check
-git add content && git commit -m "رحلة الليل" && git push
-```
-صيغة الملف النصي `ch1.txt`: سطر لكل جملة، واسم المتحدث قبل النقطتين (السطر بلا اسم = الراوي).
-
-### قيم مفيدة
-| الحقل | القيم |
-|---|---|
-| `world` | `stories` · `knowledge` · `soul` · `self` · `reflections` (أو أضف عالمًا جديدًا في `worlds`) |
-| `art` | `storm` · `lantern` · `traveler` · `deepsea` · `mind` · `morning` |
-| أصوات Gemini | `Charon` · `Kore` · `Puck` · `Aoede` · `Fenrir` · `Leda` · `Orus` … |
-
-> الفصل بدون صوت يعمل فورًا كنص مع قراءة حية تقديرية، ويتحوّل لصوت حقيقي بعد التوليد.
-
----
+كل الأقسام والقصص تُدار من **لوحة الإدارة** (القسم بالأسفل)، والتطبيق يقرأ من Supabase فقط. ما يظهر في التطبيق هو ما تنشره من اللوحة.
 
 ## قاعدة البيانات (Supabase)
 التطبيق يقرأ المحتوى من Supabase أولًا، ولو مش متاح يرجع لـ GitHub ثم للنسخة المحفوظة ثم المدمجة.
