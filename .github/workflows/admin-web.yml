@@ -33,7 +33,7 @@ jobs:
       - name: فحص الكود
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
       - name: بناء نسخة الويب
-        run: flutter build web --release --base-href "/${{ github.event.repository.name }}/"
+        run: flutter build web --release --no-web-resources-cdn --base-href "/${{ github.event.repository.name }}/"
       - name: صفحة 404 (حتى تعمل الروابط المباشرة)
         run: cp build/web/index.html build/web/404.html
       - if: github.event_name != 'pull_request'
