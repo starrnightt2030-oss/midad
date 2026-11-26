@@ -110,7 +110,11 @@ class _Section extends StatelessWidget {
           border: Border.all(color: Colors.white.op(0.06)),
         ),
         padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
+        // Material شفاف حتى تظهر لمسة القوائم فوق خلفية القسم.
+        child: Material(
+          type: MaterialType.transparency,
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
+        ),
       );
 }
 
