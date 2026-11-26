@@ -49,23 +49,25 @@ jobs:
           channel: stable
           cache: true
 
+      - name: مفتاح التوقيع الثابت (حتى تعمل التحديثات فوق النسخة القديمة)
+        env:
+          KEY_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KEY_B64" ]; then
+            echo "$KEY_B64" | base64 -d > "$RUNNER_TEMP/atheer.jks"
+            echo "ATHEER_KEYSTORE=$RUNNER_TEMP/atheer.jks" >> "$GITHUB_ENV"
+            echo "ATHEER_KEY_PASSWORD=atheer-signing" >> "$GITHUB_ENV"
+          elif [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "::error::السر ANDROID_KEYSTORE_B64 غير موجود: بدونه كل نسخة تتوقع بمفتاح مختلف ولا تثبت فوق القديمة"
+            exit 1
+          fi
+
       - name: تجهيز مشروع أندرويد
         run: |
           flutter create --platforms=android --org com.eldawly --project-name atheer .
           # نحذف اختبار القالب الافتراضي فقط ونحتفظ باختبارات المشروع
           rm -f test/widget_test.dart
           python3 tools/ci/patch_android.py
-
-      - name: مفتاح التوقيع الثابت (حتى تعمل التحديثات فوق النسخة القديمة)
-        env:
-          KEY_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
-        run: |
-          mkdir -p ~/.android
-          if [ -n "$KEY_B64" ]; then
-            echo "$KEY_B64" | base64 -d > ~/.android/debug.keystore
-          else
-            echo "::warning::أضف ANDROID_KEYSTORE_B64 في Secrets حتى يكون التوقيع ثابتًا بين الإصدارات"
-          fi
 
       - name: رقم الإصدار
         id: v
@@ -83,23 +85,26 @@ jobs:
 
       - name: بناء APK
         run: >
-          flutter build apk --release
+          flutter build apk --release --split-per-abi
+          --target-platform android-arm,android-arm64
           --build-name=${{ steps.v.outputs.version }}
           --build-number=${{ github.run_number }}
           --dart-define=APP_VERSION=${{ steps.v.outputs.version }}
           --dart-define=BUILD_NUMBER=${{ github.run_number }}
 
       - name: تسمية الملف
+        # نسخة لكل نوع معالج بدل نسخة واحدة ضخمة: الملف أصغر بكثير.
+        # atheer.apk = أغلب الموبايلات (arm64)، atheer-armv7.apk = الموبايلات القديمة.
+        # رابط ثابت: https://github.com/<owner>/<repo>/releases/latest/download/atheer.apk
         run: |
-          cp build/app/outputs/flutter-apk/app-release.apk "atheer-v${{ steps.v.outputs.version }}-b${{ github.run_number }}.apk"
-          # نسخة باسم ثابت: رابط تحميل مباشر لا يتغير لآخر إصدار
-          # https://github.com/<owner>/<repo>/releases/latest/download/atheer.apk
-          cp build/app/outputs/flutter-apk/app-release.apk atheer.apk
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk atheer.apk
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk atheer-armv7.apk
+          ls -lh atheer*.apk
 
       - uses: actions/upload-artifact@v4
         with:
           name: atheer-apk
-          path: atheer-*.apk
+          path: atheer*.apk
 
       - name: نشر الإصدار
         if: github.event_name != 'pull_request'
@@ -109,6 +114,6 @@ jobs:
           name: أثير ${{ steps.v.outputs.version }} — بناء ${{ github.run_number }}
           body: ${{ github.event.head_commit.message || 'تحسينات وإصلاحات' }}
           files: |
-            atheer-*.apk
             atheer.apk
+            atheer-armv7.apk
           make_latest: true
