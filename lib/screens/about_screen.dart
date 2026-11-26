@@ -17,12 +17,12 @@ class AboutScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final lib = context.watch<LibraryStore>();
     final cat = context.watch<ContentRepository>().catalog;
-    const gold = MidadColors.saffron;
+    final gold = MidadColors.saffron;
 
     return Scaffold(
       backgroundColor: MidadColors.ink,
       body: Stack(children: [
-        const AmbientGlow(color: gold, alignment: Alignment(0, -0.75), size: 420, opacity: 0.25),
+        AmbientGlow(color: gold, alignment: const Alignment(0, -0.75), size: 420, opacity: 0.25),
         const Positioned.fill(child: Starfield(count: 30)),
         SafeArea(
           child: ListView(padding: const EdgeInsets.fromLTRB(20, 8, 20, 30), children: [
@@ -72,7 +72,7 @@ class AboutScreen extends StatelessWidget {
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: const LinearGradient(colors: [Color(0xFFF6D58E), gold, Color(0xFFB8812F)]),
+                    gradient: MidadColors.palette.button,
                     boxShadow: [BoxShadow(color: gold.op(0.4), blurRadius: 14)],
                   ),
                   child: Text('M', style: MidadText.title(size: 20, color: MidadColors.ink)),

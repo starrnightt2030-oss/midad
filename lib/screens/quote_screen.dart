@@ -8,7 +8,6 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../config.dart';
-import '../data/repository.dart';
 import '../models.dart';
 import '../state/library.dart';
 import '../theme.dart';
@@ -35,7 +34,7 @@ class _QuoteScreenState extends State<QuoteScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final color = context.read<ContentRepository>().catalog?.worldOf(widget.work)?.color ?? MidadColors.saffron;
+    final color = MidadColors.accent;
     return Scaffold(
       backgroundColor: MidadColors.ink,
       body: SafeArea(

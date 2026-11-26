@@ -67,6 +67,6 @@ class MiniPlayer extends StatelessWidget {
     final cat = context.read<ContentRepository>().catalog;
     final w = p.work;
     if (cat == null || w == null) return MidadColors.saffron;
-    return cat.worldOf(w)?.color ?? MidadColors.saffron;
+    return MidadColors.accent;
   }
 }

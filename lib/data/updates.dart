@@ -70,13 +70,18 @@ class _UpdateSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final notes = info.notes.trim();
+    // ملاحظات الإصدار تأتي من رسالة الـ commit؛ نحذف سطور التوقيع التقنية.
+    final notes = info.notes
+        .split('\n')
+        .where((l) => !RegExp(r'^\s*(Co-Authored-By|Claude-Session|Signed-off-by):', caseSensitive: false).hasMatch(l))
+        .join('\n')
+        .trim();
     return Container(
       margin: const EdgeInsets.all(12),
       padding: const EdgeInsets.fromLTRB(22, 26, 22, 18),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(32),
-        gradient: const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF1A2440), MidadColors.ink]),
+        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [MidadColors.inkTop, MidadColors.ink]),
         border: Border.all(color: MidadColors.saffron.op(0.35)),
         boxShadow: [BoxShadow(color: MidadColors.saffron.op(0.2), blurRadius: 40)],
       ),
