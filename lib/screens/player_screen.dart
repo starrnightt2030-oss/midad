@@ -130,6 +130,15 @@ class _PlayerScreenState extends State<PlayerScreen> {
           ),
           // ٣) الوضع السينمائي: سطر الحكي فقط.
           if (_cinematic) _CinematicLayer(onExit: () => _setCinematic(false)),
+          // كلمات القصة تبقى ظاهرة فوق الخلفية بعد اختفاء أدوات التحكم (اللمس يعيد الأدوات).
+          if (!_cinematic)
+            IgnorePointer(
+              child: AnimatedOpacity(
+                duration: Duration(milliseconds: _controls ? 250 : 1200),
+                opacity: _controls ? 0 : 1,
+                child: const _CinematicLayer(),
+              ),
+            ),
           // ٤) أدوات التحكم.
           IgnorePointer(
             ignoring: !_controls,
@@ -513,10 +522,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 }
 
-/// الوضع السينمائي: المشهد وحده مع سطر الحكي الحالي بخط هادئ. اللمس يعيد الأدوات.
+/// سطر الحكي الحالي بخط هادئ فوق المشهد: في الوضع السينمائي، وبعد اختفاء أدوات التحكم.
+/// لو [onExit] موجود فاللمس يخرج من الوضع السينمائي.
 class _CinematicLayer extends StatelessWidget {
-  final VoidCallback onExit;
-  const _CinematicLayer({required this.onExit});
+  final VoidCallback? onExit;
+  const _CinematicLayer({this.onExit});
 
   @override
   Widget build(BuildContext context) {
@@ -526,7 +536,7 @@ class _CinematicLayer extends StatelessWidget {
     });
     final title = context.select<PlayerController, String>((p) => p.work?.title ?? '');
     return GestureDetector(
-      behavior: HitTestBehavior.opaque,
+      behavior: onExit == null ? HitTestBehavior.deferToChild : HitTestBehavior.opaque,
       onTap: onExit,
       child: SafeArea(
         child: Align(
