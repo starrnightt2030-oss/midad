@@ -78,4 +78,8 @@ for p in res_dst.glob('drawable*/launch_background.xml'):
 </layer-list>
 ''', encoding='utf-8')
 
+# مفتاح توقيع ثابت (من أسرار GitHub)
+import signing
+signing.apply(ROOT / 'android')
+
 print('android patched ✓')

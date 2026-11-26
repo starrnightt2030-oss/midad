@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -19,6 +20,12 @@ class UpdateInfo {
 class UpdateService {
   static bool _shownThisSession = false;
 
+  /// الموبايلات القديمة (٣٢ بت) تأخذ atheer-armv7.apk، والباقي atheer.apk (arm64).
+  static String _apkNameForDevice() {
+    final v = Platform.version; // ينتهي بـ on "android_arm64" أو "android_arm"
+    return v.contains('android_arm"') ? 'atheer-armv7.apk' : 'atheer.apk';
+  }
+
   static Future<UpdateInfo?> check() async {
     try {
       final r = await http
@@ -31,11 +38,14 @@ class UpdateService {
       if (m == null) return null;
       final version = m.group(1)!;
       final build = int.tryParse(m.group(2) ?? '') ?? 0;
-      String? apk;
+      // كل إصدار فيه نسخة لكل نوع معالج؛ نختار المناسبة لهذا الموبايل.
+      final urls = <String, String>{};
       for (final a in (j['assets'] as List? ?? [])) {
         final name = (a['name'] ?? '') as String;
-        if (name.endsWith('.apk')) apk = a['browser_download_url'] as String?;
+        final url = a['browser_download_url'] as String?;
+        if (name.endsWith('.apk') && url != null) urls[name] = url;
       }
+      final apk = urls[_apkNameForDevice()] ?? urls['atheer.apk'] ?? (urls.isEmpty ? null : urls.values.last);
       if (apk == null) return null;
       if (build <= AppConfig.build) return null;
       return UpdateInfo(version, build, apk, (j['body'] ?? '') as String);
