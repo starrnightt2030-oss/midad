@@ -1,0 +1,65 @@
+{
+  "id": "25_ocean_depths",
+  "title": "أعماق المحيط",
+  "categories": [
+    "fantasy",
+    "meditation"
+  ],
+  "moods": [],
+  "width": 941,
+  "height": 1672,
+  "source_quality": "individual",
+  "masks_ready": true,
+  "focus": [
+    0.5,
+    0.5
+  ],
+  "tint": "#06283A",
+  "sound": "ocean",
+  "layers": [
+    {
+      "effect": "flow",
+      "channel": "r",
+      "speed": 0.15,
+      "amount": 0.004,
+      "scale": 0.8,
+      "dir": [
+        0.287,
+        -0.958
+      ]
+    },
+    {
+      "effect": "rays",
+      "channel": "g",
+      "speed": 0.35,
+      "amount": 0.14,
+      "scale": 1.0,
+      "dir": [
+        0.981,
+        0.196
+      ]
+    },
+    {
+      "effect": "sway",
+      "channel": "b",
+      "speed": 0.6,
+      "amount": 0.0025,
+      "scale": 1.0
+    }
+  ],
+  "particles": [
+    {
+      "type": "bubbles",
+      "area": [
+        0.05,
+        0.3,
+        0.95,
+        0.98
+      ],
+      "count": 14,
+      "color": "#CFF6FF",
+      "size": 1.0,
+      "speed": 1.0
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "id": "27_sky_city",
+  "title": "مدينة السحاب",
+  "categories": [
+    "fantasy"
+  ],
+  "moods": [],
+  "width": 941,
+  "height": 1672,
+  "source_quality": "individual",
+  "masks_ready": true,
+  "focus": [
+    0.5,
+    0.5
+  ],
+  "tint": "#3A2238",
+  "sound": "wind",
+  "layers": [
+    {
+      "effect": "drift",
+      "channel": "r",
+      "speed": 0.025,
+      "amount": 0.014,
+      "scale": 1.0,
+      "dir": [
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "effect": "flow",
+      "channel": "g",
+      "speed": 0.9,
+      "amount": 0.005,
+      "scale": 1.6,
+      "dir": [
+        0.0,
+        1.0
+      ]
+    },
+    {
+      "effect": "glow",
+      "channel": "b",
+      "speed": 0.6,
+      "amount": 0.1,
+      "scale": 1.0
+    }
+  ],
+  "particles": [
+    {
+      "type": "petals",
+      "area": [
+        0.0,
+        0.3,
+        0.4,
+        1.0
+      ],
+      "count": 5,
+      "color": "#D04FD0",
+      "size": 0.6,
+      "speed": 0.7
+    }
+  ]
+}

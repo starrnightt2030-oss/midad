@@ -1,0 +1,53 @@
+{
+  "id": "04_ocean_sunset",
+  "title": "غروب على البحر",
+  "categories": [
+    "nature",
+    "hope"
+  ],
+  "moods": [
+    "sea"
+  ],
+  "width": 941,
+  "height": 1672,
+  "source_quality": "individual",
+  "masks_ready": true,
+  "focus": [
+    0.5,
+    0.5
+  ],
+  "tint": "#3A2238",
+  "sound": "ocean",
+  "layers": [
+    {
+      "effect": "waves",
+      "channel": "r",
+      "speed": 0.8,
+      "amount": 0.003,
+      "scale": 1.0,
+      "dir": [
+        -0.243,
+        0.97
+      ]
+    },
+    {
+      "effect": "drift",
+      "channel": "g",
+      "speed": 0.025,
+      "amount": 0.01,
+      "scale": 1.0,
+      "dir": [
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "effect": "sway",
+      "channel": "b",
+      "speed": 0.7,
+      "amount": 0.002,
+      "scale": 1.0
+    }
+  ],
+  "particles": []
+}

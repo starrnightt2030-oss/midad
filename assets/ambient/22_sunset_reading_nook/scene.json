@@ -1,0 +1,74 @@
+{
+  "id": "22_sunset_reading_nook",
+  "title": "ركن القراءة",
+  "categories": [
+    "hope",
+    "meditation"
+  ],
+  "moods": [
+    "forest"
+  ],
+  "width": 941,
+  "height": 1672,
+  "source_quality": "individual",
+  "masks_ready": true,
+  "focus": [
+    0.6,
+    0.5
+  ],
+  "tint": "#3A2830",
+  "sound": "wind",
+  "layers": [
+    {
+      "effect": "drift",
+      "channel": "r",
+      "speed": 0.025,
+      "amount": 0.012,
+      "scale": 1.0,
+      "dir": [
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "effect": "mist",
+      "channel": "r",
+      "speed": 0.015,
+      "amount": 0.25,
+      "scale": 1.0,
+      "dir": [
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "effect": "sway",
+      "channel": "g",
+      "speed": 0.5,
+      "amount": 0.0022,
+      "scale": 1.0
+    },
+    {
+      "effect": "glow",
+      "channel": "b",
+      "speed": 0.7,
+      "amount": 0.12,
+      "scale": 1.0
+    }
+  ],
+  "particles": [
+    {
+      "type": "steam",
+      "area": [
+        0.43,
+        0.55,
+        0.5,
+        0.66
+      ],
+      "count": 6,
+      "color": "#FFFFFF",
+      "size": 0.5,
+      "speed": 0.8
+    }
+  ]
+}

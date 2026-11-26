@@ -9,6 +9,7 @@ import '../theme.dart';
 import '../widgets/common.dart';
 import 'about_screen.dart';
 import 'account_screen.dart';
+import 'ambient_gallery_screen.dart';
 
 /// المزيد: اختيار الثيم، حجم الخط، والإعدادات العامة.
 class MoreScreen extends StatelessWidget {
@@ -32,6 +33,16 @@ class MoreScreen extends StatelessWidget {
                 style: MidadText.ui(size: 12, color: Colors.white60)),
             trailing: const Icon(Icons.chevron_left_rounded),
             onTap: () => Navigator.of(context).push(fadeRoute(const AccountScreen())),
+          ),
+        ]),
+        const SizedBox(height: 14),
+        _Section(children: [
+          ListTile(
+            leading: Icon(Icons.landscape_rounded, color: MidadColors.accent),
+            title: Text('أجواء أثير', style: MidadText.ui(weight: FontWeight.w600)),
+            subtitle: Text('خلفيات حية للمشغّل، المفضلة، وجودة الحركة', style: MidadText.ui(size: 12, color: Colors.white60)),
+            trailing: const Icon(Icons.chevron_left_rounded),
+            onTap: () => Navigator.of(context).push(fadeRoute(const AmbientGalleryScreen())),
           ),
         ]),
         const SizedBox(height: 20),

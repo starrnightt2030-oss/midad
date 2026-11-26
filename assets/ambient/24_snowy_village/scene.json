@@ -1,0 +1,78 @@
+{
+  "id": "24_snowy_village",
+  "title": "قرية الثلج",
+  "categories": [
+    "rain_winter",
+    "hope"
+  ],
+  "moods": [
+    "snow"
+  ],
+  "width": 941,
+  "height": 1672,
+  "source_quality": "individual",
+  "masks_ready": true,
+  "focus": [
+    0.4,
+    0.5
+  ],
+  "tint": "#2A2238",
+  "sound": "fireplace",
+  "layers": [
+    {
+      "effect": "mist",
+      "channel": "r",
+      "speed": 0.02,
+      "amount": 0.3,
+      "scale": 1.0,
+      "dir": [
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "effect": "drift",
+      "channel": "r",
+      "speed": 0.02,
+      "amount": 0.012,
+      "scale": 1.0,
+      "dir": [
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "effect": "drift",
+      "channel": "g",
+      "speed": 0.02,
+      "amount": 0.01,
+      "scale": 1.0,
+      "dir": [
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "effect": "glow",
+      "channel": "b",
+      "speed": 0.7,
+      "amount": 0.12,
+      "scale": 1.0
+    }
+  ],
+  "particles": [
+    {
+      "type": "snow",
+      "area": [
+        0.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "count": 55,
+      "color": "#FFFFFF",
+      "size": 0.9,
+      "speed": 1.0
+    }
+  ]
+}

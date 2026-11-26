@@ -146,17 +146,27 @@ Color parseHex(String? hex, [Color? fallback]) {
 }
 
 class MidadText {
-  static TextStyle ui({double size = 14, FontWeight weight = FontWeight.w500, Color color = Colors.white, double? height}) =>
-      GoogleFonts.ibmPlexSansArabic(fontSize: size, fontWeight: weight, color: color, height: height);
+  /// في الاختبارات فقط: خطوط النظام بدل تنزيل خطوط Google (لا يوجد إنترنت هناك).
+  @visibleForTesting
+  static bool useGoogleFonts = true;
 
-  static TextStyle title({double size = 22, Color color = Colors.white, double? height}) =>
-      GoogleFonts.ibmPlexSansArabic(fontSize: size, fontWeight: FontWeight.w700, color: color, height: height);
+  static TextStyle _plex(double size, FontWeight weight, Color color, double? height) => useGoogleFonts
+      ? GoogleFonts.ibmPlexSansArabic(fontSize: size, fontWeight: weight, color: color, height: height)
+      : TextStyle(fontSize: size, fontWeight: weight, color: color, height: height);
+
+  static TextStyle ui({double size = 14, FontWeight weight = FontWeight.w500, Color color = Colors.white, double? height}) =>
+      _plex(size, weight, color, height);
+
+  static TextStyle title({double size = 22, Color color = Colors.white, double? height}) => _plex(size, FontWeight.w700, color, height);
 
   static TextStyle book({double size = 20, Color color = Colors.white, FontWeight weight = FontWeight.w400, double height = 1.9}) =>
-      GoogleFonts.amiri(fontSize: size, fontWeight: weight, color: color, height: height);
+      useGoogleFonts
+          ? GoogleFonts.amiri(fontSize: size, fontWeight: weight, color: color, height: height)
+          : TextStyle(fontSize: size, fontWeight: weight, color: color, height: height);
 
-  static TextStyle callig({double size = 40, Color color = Colors.white}) =>
-      GoogleFonts.arefRuqaa(fontSize: size, fontWeight: FontWeight.w700, color: color, height: 1.25);
+  static TextStyle callig({double size = 40, Color color = Colors.white}) => useGoogleFonts
+      ? GoogleFonts.arefRuqaa(fontSize: size, fontWeight: FontWeight.w700, color: color, height: 1.25)
+      : TextStyle(fontSize: size, fontWeight: FontWeight.w700, color: color, height: 1.25);
 }
 
 ThemeData buildTheme() {
@@ -169,7 +179,7 @@ ThemeData buildTheme() {
       surface: MidadColors.surface,
       onPrimary: MidadColors.ink,
     ),
-    textTheme: GoogleFonts.ibmPlexSansArabicTextTheme(base.textTheme),
+    textTheme: MidadText.useGoogleFonts ? GoogleFonts.ibmPlexSansArabicTextTheme(base.textTheme) : base.textTheme,
     snackBarTheme: SnackBarThemeData(backgroundColor: MidadColors.surfaceHigh, behavior: SnackBarBehavior.floating),
     sliderTheme: base.sliderTheme.copyWith(
       activeTrackColor: MidadColors.accent,

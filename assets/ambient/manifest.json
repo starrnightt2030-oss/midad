@@ -1,0 +1,115 @@
+{
+  "version": 2,
+  "engine": "AtheerLiveScenesEngine",
+  "note": "المشاهد ذات source_quality=collage_preview نسخ مؤقتة منخفضة الدقة ويجب استبدالها بصور أصلية 9:16 قبل الإصدار النهائي.",
+  "scenes": [
+    {
+      "id": "01_moonlight_lake",
+      "scene": "assets/ambient/01_moonlight_lake/scene.json"
+    },
+    {
+      "id": "02_rainy_window",
+      "scene": "assets/ambient/02_rainy_window/scene.json"
+    },
+    {
+      "id": "03_peaceful_forest",
+      "scene": "assets/ambient/03_peaceful_forest/scene.json"
+    },
+    {
+      "id": "04_ocean_sunset",
+      "scene": "assets/ambient/04_ocean_sunset/scene.json"
+    },
+    {
+      "id": "05_starry_night",
+      "scene": "assets/ambient/05_starry_night/scene.json"
+    },
+    {
+      "id": "06_cozy_library",
+      "scene": "assets/ambient/06_cozy_library/scene.json"
+    },
+    {
+      "id": "07_desert_serenity",
+      "scene": "assets/ambient/07_desert_serenity/scene.json"
+    },
+    {
+      "id": "08_mountain_sunrise",
+      "scene": "assets/ambient/08_mountain_sunrise/scene.json"
+    },
+    {
+      "id": "09_hidden_waterfall",
+      "scene": "assets/ambient/09_hidden_waterfall/scene.json"
+    },
+    {
+      "id": "10_mosque_courtyard",
+      "scene": "assets/ambient/10_mosque_courtyard/scene.json"
+    },
+    {
+      "id": "11_golden_river",
+      "scene": "assets/ambient/11_golden_river/scene.json"
+    },
+    {
+      "id": "12_lavender_fields",
+      "scene": "assets/ambient/12_lavender_fields/scene.json"
+    },
+    {
+      "id": "13_snowy_cabin",
+      "scene": "assets/ambient/13_snowy_cabin/scene.json"
+    },
+    {
+      "id": "14_nile_balcony",
+      "scene": "assets/ambient/14_nile_balcony/scene.json"
+    },
+    {
+      "id": "15_midnight_ocean",
+      "scene": "assets/ambient/15_midnight_ocean/scene.json"
+    },
+    {
+      "id": "16_alpine_lake",
+      "scene": "assets/ambient/16_alpine_lake/scene.json"
+    },
+    {
+      "id": "17_campfire_night",
+      "scene": "assets/ambient/17_campfire_night/scene.json"
+    },
+    {
+      "id": "18_sunlight_garden",
+      "scene": "assets/ambient/18_sunlight_garden/scene.json"
+    },
+    {
+      "id": "19_northern_lights",
+      "scene": "assets/ambient/19_northern_lights/scene.json"
+    },
+    {
+      "id": "20_arabian_night",
+      "scene": "assets/ambient/20_arabian_night/scene.json"
+    },
+    {
+      "id": "21_moonlit_shore",
+      "scene": "assets/ambient/21_moonlit_shore/scene.json"
+    },
+    {
+      "id": "22_sunset_reading_nook",
+      "scene": "assets/ambient/22_sunset_reading_nook/scene.json"
+    },
+    {
+      "id": "23_desert_station",
+      "scene": "assets/ambient/23_desert_station/scene.json"
+    },
+    {
+      "id": "24_snowy_village",
+      "scene": "assets/ambient/24_snowy_village/scene.json"
+    },
+    {
+      "id": "25_ocean_depths",
+      "scene": "assets/ambient/25_ocean_depths/scene.json"
+    },
+    {
+      "id": "26_volcano_observatory",
+      "scene": "assets/ambient/26_volcano_observatory/scene.json"
+    },
+    {
+      "id": "27_sky_city",
+      "scene": "assets/ambient/27_sky_city/scene.json"
+    }
+  ]
+}

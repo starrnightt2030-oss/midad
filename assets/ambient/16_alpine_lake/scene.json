@@ -1,0 +1,49 @@
+{
+  "id": "16_alpine_lake",
+  "title": "بحيرة الجبال",
+  "categories": [
+    "nature",
+    "meditation"
+  ],
+  "moods": [
+    "forest"
+  ],
+  "width": 941,
+  "height": 1672,
+  "source_quality": "individual",
+  "masks_ready": true,
+  "focus": [
+    0.5,
+    0.5
+  ],
+  "tint": "#14323A",
+  "sound": "wind",
+  "layers": [
+    {
+      "effect": "ripple",
+      "channel": "r",
+      "speed": 0.7,
+      "amount": 0.0028,
+      "scale": 1.0
+    },
+    {
+      "effect": "drift",
+      "channel": "g",
+      "speed": 0.02,
+      "amount": 0.01,
+      "scale": 1.0,
+      "dir": [
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "effect": "sway",
+      "channel": "b",
+      "speed": 0.55,
+      "amount": 0.0022,
+      "scale": 1.0
+    }
+  ],
+  "particles": []
+}

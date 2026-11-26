@@ -7,6 +7,9 @@ on:
       - 'lib/**'
       - 'pubspec.yaml'
       - 'assets/**'
+      - 'shaders/**'
+      - 'test/**'
+      - 'content/ambience/**'
       - 'branding/**'
       - 'tools/ci/**'
       - '.github/workflows/build-apk.yml'
@@ -15,6 +18,9 @@ on:
       - 'lib/**'
       - 'pubspec.yaml'
       - 'assets/**'
+      - 'shaders/**'
+      - 'test/**'
+      - 'content/ambience/**'
       - 'branding/**'
       - 'tools/ci/**'
       - '.github/workflows/build-apk.yml'
@@ -46,7 +52,8 @@ jobs:
       - name: تجهيز مشروع أندرويد
         run: |
           flutter create --platforms=android --org com.eldawly --project-name atheer .
-          rm -rf test
+          # نحذف اختبار القالب الافتراضي فقط ونحتفظ باختبارات المشروع
+          rm -f test/widget_test.dart
           python3 tools/ci/patch_android.py
 
       - name: مفتاح التوقيع الثابت (حتى تعمل التحديثات فوق النسخة القديمة)
@@ -70,6 +77,9 @@ jobs:
 
       - name: فحص الكود
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: الاختبارات
+        run: flutter test
 
       - name: بناء APK
         run: >

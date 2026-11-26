@@ -1,0 +1,46 @@
+{
+  "id": "19_northern_lights",
+  "title": "الشفق القطبي",
+  "categories": [
+    "meditation",
+    "sleep"
+  ],
+  "moods": [
+    "night",
+    "snow"
+  ],
+  "width": 252,
+  "height": 303,
+  "source_quality": "collage_preview",
+  "masks_ready": true,
+  "focus": [
+    0.4,
+    0.5
+  ],
+  "tint": "#0A1424",
+  "sound": "wind",
+  "layers": [
+    {
+      "effect": "aurora",
+      "channel": "r",
+      "speed": 0.25,
+      "amount": 0.006,
+      "scale": 1.0
+    },
+    {
+      "effect": "ripple",
+      "channel": "g",
+      "speed": 0.6,
+      "amount": 0.002,
+      "scale": 1.0
+    },
+    {
+      "effect": "twinkle",
+      "channel": "b",
+      "speed": 1.3,
+      "amount": 0.5,
+      "scale": 1.0
+    }
+  ],
+  "particles": []
+}

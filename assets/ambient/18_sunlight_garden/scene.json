@@ -1,0 +1,63 @@
+{
+  "id": "18_sunlight_garden",
+  "title": "حديقة الشمس",
+  "categories": [
+    "hope",
+    "nature"
+  ],
+  "moods": [
+    "forest"
+  ],
+  "width": 252,
+  "height": 303,
+  "source_quality": "collage_preview",
+  "masks_ready": true,
+  "focus": [
+    0.55,
+    0.5
+  ],
+  "tint": "#2A3A18",
+  "sound": "forest",
+  "layers": [
+    {
+      "effect": "sway",
+      "channel": "r",
+      "speed": 0.6,
+      "amount": 0.003,
+      "scale": 1.0
+    },
+    {
+      "effect": "rays",
+      "channel": "g",
+      "speed": 0.3,
+      "amount": 0.1,
+      "scale": 1.0,
+      "dir": [
+        0.8,
+        0.6
+      ]
+    },
+    {
+      "effect": "glow",
+      "channel": "b",
+      "speed": 0.3,
+      "amount": 0.06,
+      "scale": 1.0
+    }
+  ],
+  "particles": [
+    {
+      "type": "motes",
+      "area": [
+        0.3,
+        0.2,
+        1.0,
+        0.65
+      ],
+      "count": 14,
+      "color": "#FFF6C8",
+      "size": 1.0,
+      "speed": 1.0
+    }
+  ]
+}

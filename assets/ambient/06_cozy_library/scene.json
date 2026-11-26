@@ -1,0 +1,53 @@
+{
+  "id": "06_cozy_library",
+  "title": "مكتبة دافئة",
+  "categories": [
+    "meditation",
+    "sleep"
+  ],
+  "moods": [
+    "embers",
+    "night"
+  ],
+  "width": 252,
+  "height": 303,
+  "source_quality": "collage_preview",
+  "masks_ready": true,
+  "focus": [
+    0.4,
+    0.5
+  ],
+  "tint": "#2A1A10",
+  "sound": "fireplace",
+  "layers": [
+    {
+      "effect": "twinkle",
+      "channel": "g",
+      "speed": 1.4,
+      "amount": 0.5,
+      "scale": 1.0
+    },
+    {
+      "effect": "glow",
+      "channel": "b",
+      "speed": 1.2,
+      "amount": 0.14,
+      "scale": 1.0
+    }
+  ],
+  "particles": [
+    {
+      "type": "motes",
+      "area": [
+        0.1,
+        0.3,
+        0.6,
+        0.85
+      ],
+      "count": 10,
+      "color": "#FFE2A8",
+      "size": 1.0,
+      "speed": 1.0
+    }
+  ]
+}

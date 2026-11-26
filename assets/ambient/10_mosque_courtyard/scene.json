@@ -1,0 +1,45 @@
+{
+  "id": "10_mosque_courtyard",
+  "title": "صحن المسجد",
+  "categories": [
+    "spiritual"
+  ],
+  "moods": [
+    "night",
+    "desert"
+  ],
+  "width": 252,
+  "height": 304,
+  "source_quality": "collage_preview",
+  "masks_ready": true,
+  "focus": [
+    0.5,
+    0.5
+  ],
+  "tint": "#1E1A2C",
+  "sound": "night",
+  "layers": [
+    {
+      "effect": "ripple",
+      "channel": "r",
+      "speed": 0.6,
+      "amount": 0.002,
+      "scale": 1.0
+    },
+    {
+      "effect": "sway",
+      "channel": "g",
+      "speed": 0.5,
+      "amount": 0.0025,
+      "scale": 1.0
+    },
+    {
+      "effect": "glow",
+      "channel": "b",
+      "speed": 0.6,
+      "amount": 0.12,
+      "scale": 1.0
+    }
+  ],
+  "particles": []
+}
