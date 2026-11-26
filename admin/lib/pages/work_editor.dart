@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -59,22 +60,25 @@ class _WorkEditorState extends State<WorkEditor> {
     if (active) _poll = Timer(const Duration(seconds: 15), _loadJobs);
   }
 
-  Future<void> _generate(Map<String, dynamic> ch) async {
+  Future<void> _enqueue(Map<String, dynamic> ch, String kind) async {
     try {
-      await enqueueVoice(id!, ch['id'] as String);
-      if (mounted) toast(context, 'تم طلب توليد الصوت؛ يجهز خلال دقائق');
+      await enqueueVoice(id!, ch['id'] as String, kind: kind);
+      if (mounted) toast(context, kind == 'align' ? 'تم طلب ضبط التوقيت؛ يجهز خلال دقائق' : 'تم طلب توليد الصوت؛ يجهز خلال دقائق');
       _loadJobs();
     } catch (e) {
       if (mounted) toast(context, 'تعذّر الطلب: $e');
     }
   }
 
-  String? _jobLabel(Map<String, dynamic>? j) => switch (j?['status']) {
-        'pending' => 'في انتظار التوليد…',
-        'running' => 'جارٍ التوليد ${j!['progress'] ?? ''}',
-        'failed' => 'فشل التوليد: ${j!['error']}',
-        _ => null,
-      };
+  String? _jobLabel(Map<String, dynamic>? j) {
+    final what = j?['kind'] == 'align' ? 'ضبط التوقيت' : 'التوليد';
+    return switch (j?['status']) {
+      'pending' => 'في انتظار $what…',
+      'running' => 'جارٍ $what ${j!['progress'] ?? ''}',
+      'failed' => 'فشل $what: ${j!['error']}',
+      _ => null,
+    };
+  }
 
   Future<void> _load() async {
     if (id == null) return setState(() => loading = false);
@@ -270,9 +274,15 @@ class _WorkEditorState extends State<WorkEditor> {
                           if (_jobLabel(jobs[ch['id']]) != null) _jobLabel(jobs[ch['id']])!,
                         ].join(' • ')),
                         trailing: Wrap(children: [
+                          if ((ch['audio'] ?? '') != '' || (ch['audio_path'] ?? '') != '')
+                            IconButton(
+                              tooltip: 'ضبط توقيت النص على الصوت',
+                              onPressed: const ['pending', 'running'].contains(jobs[ch['id']]?['status']) ? null : () => _enqueue(ch, 'align'),
+                              icon: const Icon(Icons.timer_outlined),
+                            ),
                           IconButton(
                             tooltip: 'توليد الصوت بالذكاء الاصطناعي',
-                            onPressed: const ['pending', 'running'].contains(jobs[ch['id']]?['status']) ? null : () => _generate(ch),
+                            onPressed: const ['pending', 'running'].contains(jobs[ch['id']]?['status']) ? null : () => _enqueue(ch, 'tts'),
                             icon: const Icon(Icons.auto_awesome_rounded),
                           ),
                           IconButton(tooltip: 'تعديل', onPressed: () => _editChapter(ch), icon: const Icon(Icons.edit_rounded)),
@@ -307,6 +317,7 @@ class _ChapterDialogState extends State<ChapterDialog> {
   String? audioName;
   bool busy = false;
   bool generate = false;
+  bool align = false, _alignTouched = false;
   late final Map<String, String> voices = {
     for (final e in (((widget.chapter?['script'] as Map?)?['speakers'] as Map?) ?? const {}).entries)
       if (e.value is Map && (e.value as Map)['voice'] != null) e.key as String: (e.value as Map)['voice'] as String,
@@ -315,7 +326,24 @@ class _ChapterDialogState extends State<ChapterDialog> {
   @override
   void initState() {
     super.initState();
-    text.addListener(() => setState(() {}));
+    text.addListener(() => setState(() {
+          // نص جديد على صوت موجود: نقترح ضبط التوقيت تلقائيًا
+          if (!_alignTouched && _hasAudio && text.text.trim() != originalText.trim()) align = true;
+        }));
+  }
+
+  bool get _hasAudio => audio.isNotEmpty || audioPath.isNotEmpty;
+
+  Future<void> _pickText() async {
+    final f = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: ['txt']);
+    final file = f.isEmpty ? null : f.single;
+    if (file == null) return;
+    final bytes = await file.xFile.readAsBytes();
+    if (!mounted) return;
+    final t = prepareImportedText(utf8.decode(bytes, allowMalformed: true));
+    if (t.isEmpty) return toast(context, 'الملف فارغ');
+    text.text = t;
+    if (title.text.trim().isEmpty) title.text = file.name.replaceAll(RegExp(r'\.txt$', caseSensitive: false), '');
   }
 
   String _defaultVoice(String name, int i) {
@@ -343,6 +371,7 @@ class _ChapterDialogState extends State<ChapterDialog> {
         audioPath = '';
       }
       audioName = file.name;
+      if (!_alignTouched) align = true;
     } catch (e) {
       if (mounted) toast(context, 'تعذّر رفع الصوت: $e');
     }
@@ -364,7 +393,11 @@ class _ChapterDialogState extends State<ChapterDialog> {
       } else {
         await db.from('chapters').update(row).eq('work_id', widget.workId).eq('id', chId);
       }
-      if (generate) await enqueueVoice(widget.workId, chId);
+      if (generate) {
+        await enqueueVoice(widget.workId, chId, kind: 'tts');
+      } else if (align && _hasAudio) {
+        await enqueueVoice(widget.workId, chId, kind: 'align');
+      }
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
@@ -376,7 +409,7 @@ class _ChapterDialogState extends State<ChapterDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final hasAudio = audio.isNotEmpty || audioPath.isNotEmpty;
+    final hasAudio = _hasAudio;
     return AlertDialog(
       title: Text(widget.chapter == null ? 'فصل جديد' : 'تعديل الفصل'),
       content: SizedBox(
@@ -391,9 +424,13 @@ class _ChapterDialogState extends State<ChapterDialog> {
               maxLines: 16,
               decoration: const InputDecoration(
                 labelText: 'نص الفصل',
-                hintText: 'كل جملة في سطر.\nلتحديد متحدث: ليلى: هل تسمع ذلك؟\nالسطر بدون اسم يقرأه الراوي.',
+                hintText: 'الصق نص التسجيل هنا، كل جملة في سطر.\nلتحديد متحدث: ليلى: هل تسمع ذلك؟\nالسطر بدون اسم يقرأه الراوي.',
                 alignLabelWithHint: true,
               ),
+            ),
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: TextButton.icon(onPressed: busy ? null : _pickText, icon: const Icon(Icons.description_outlined), label: const Text('رفع النص من ملف (.txt)')),
             ),
             const SizedBox(height: 12),
             Row(children: [
@@ -417,30 +454,49 @@ class _ChapterDialogState extends State<ChapterDialog> {
                 padding: EdgeInsets.only(top: 6),
                 child: Text('القصة باشتراك: الصوت يُحفظ في مكان محمي.', style: TextStyle(fontSize: 12, color: Colors.white54)),
               ),
-            const Divider(height: 28),
-            Text('أصوات المتحدثين (للتوليد بالذكاء الاصطناعي)', style: Theme.of(context).textTheme.titleSmall),
-            const SizedBox(height: 8),
-            for (final (i, name) in speakersOf(text.text).indexed)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(children: [
-                  SizedBox(width: 110, child: Text(name, overflow: TextOverflow.ellipsis)),
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      initialValue: voices[name] ?? _defaultVoice(name, i),
-                      isDense: true,
-                      items: [for (final (v, label) in kVoices) DropdownMenuItem(value: v, child: Text('$label ($v)'))],
-                      onChanged: (v) => setState(() => voices[name] = v!),
-                    ),
-                  ),
-                ]),
+            if (hasAudio && !generate)
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                value: align,
+                onChanged: (v) => setState(() {
+                  align = v == true;
+                  _alignTouched = true;
+                }),
+                title: const Text('اضبط توقيت النص على الصوت بعد الحفظ'),
+                subtitle: const Text('يجهز خلال دقائق: كل سطر وكلمة تظهر في وقتها مع صوتك.'),
               ),
-            CheckboxListTile(
-              contentPadding: EdgeInsets.zero,
-              value: generate,
-              onChanged: (v) => setState(() => generate = v == true),
-              title: const Text('ولّد صوت الفصل بعد الحفظ'),
-              subtitle: const Text('يجهز خلال دقائق، ويستبدل الصوت الحالي، والنص يتزامن تلقائيًا.'),
+            const Divider(height: 24),
+            ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              initiallyExpanded: generate,
+              expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
+              title: const Text('أو ولّد الصوت بالذكاء الاصطناعي (اختياري)'),
+              children: [
+                Text('أصوات المتحدثين (للتوليد بالذكاء الاصطناعي)', style: Theme.of(context).textTheme.titleSmall),
+                const SizedBox(height: 8),
+                for (final (i, name) in speakersOf(text.text).indexed)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(children: [
+                      SizedBox(width: 110, child: Text(name, overflow: TextOverflow.ellipsis)),
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          initialValue: voices[name] ?? _defaultVoice(name, i),
+                          isDense: true,
+                          items: [for (final (v, label) in kVoices) DropdownMenuItem(value: v, child: Text('$label ($v)'))],
+                          onChanged: (v) => setState(() => voices[name] = v!),
+                        ),
+                      ),
+                    ]),
+                  ),
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: generate,
+                  onChanged: (v) => setState(() => generate = v == true),
+                  title: const Text('ولّد صوت الفصل بعد الحفظ'),
+                  subtitle: const Text('يجهز خلال دقائق، ويستبدل الصوت الحالي، والنص يتزامن تلقائيًا.'),
+                ),
+              ],
             ),
           ]),
         ),

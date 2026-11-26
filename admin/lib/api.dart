@@ -101,11 +101,31 @@ const kScenes = <(String, String)>[
   ('embers', 'نار هادئة'),
 ];
 
-/// يضيف طلب توليد صوت لفصل؛ العامل على GitHub ينفّذه خلال دقائق.
-Future<void> enqueueVoice(String workId, String chapterId) async {
+/// يضيف طلبًا لفصل؛ العامل على GitHub ينفّذه خلال دقائق.
+/// kind: 'align' يضبط توقيت النص على الصوت المرفوع، و 'tts' يولّد الصوت بالذكاء الاصطناعي.
+Future<void> enqueueVoice(String workId, String chapterId, {required String kind}) async {
   await db.from('voice_jobs').delete().eq('work_id', workId).eq('chapter_id', chapterId).inFilter('status', ['done', 'failed']);
   final open = await db.from('voice_jobs').select('id').eq('work_id', workId).eq('chapter_id', chapterId).inFilter('status', ['pending', 'running']);
-  if (open.isEmpty) await db.from('voice_jobs').insert({'work_id': workId, 'chapter_id': chapterId});
+  if (open.isEmpty) await db.from('voice_jobs').insert({'work_id': workId, 'chapter_id': chapterId, 'kind': kind});
+}
+
+/// يجهّز نصًا مستوردًا من ملف: الفقرات الطويلة تُقسَم جملًا (سطر لكل جملة) حتى تتابعها القراءة الحية.
+/// سطور الحوار «اسم: كلام» تبقى كما هي.
+String prepareImportedText(String raw) {
+  final out = <String>[];
+  final speaker = RegExp(r'^([^:：]{1,24})[:：]\s*(.+)$');
+  for (final line in raw.replaceAll('\r', '').replaceAll('\uFEFF', '').split('\n')) {
+    final t = line.trim();
+    if (t.isEmpty) continue;
+    if (speaker.hasMatch(t) || t.length <= 160) {
+      out.add(t);
+      continue;
+    }
+    for (final s in t.split(RegExp(r'(?<=[.!؟?…])\s+'))) {
+      if (s.trim().isNotEmpty) out.add(s.trim());
+    }
+  }
+  return out.join('\n');
 }
 
 /// يدمج إعدادات المتحدثين القديمة (اللون والصوت) في نص جديد.
