@@ -97,16 +97,21 @@ void main() {
         await tester.pump(const Duration(milliseconds: 50));
       }
       expect(find.byType(AmbientSceneView), findsOneWidget);
-      expect(find.text('حكاية القمر والبحيرة'), findsOneWidget);
+      expect(find.text('حكاية القمر والبحيرة'), findsNWidgets(2)); // العنوان + طبقة الكلمات
       await shot(tester, key, 'player_${size.width.toInt()}');
 
       // الأدوات تختفي بعد ٨ ثوانٍ أثناء التشغيل فقط.
       p.playing = true;
-      await tester.tap(find.text('حكاية القمر والبحيرة'), warnIfMissed: false);
+      await tester.tap(find.text('حكاية القمر والبحيرة').last, warnIfMissed: false);
       await tester.pump(const Duration(seconds: 9));
       await tester.pump(const Duration(seconds: 2));
       final fade = tester.widget<IgnorePointer>(find.ancestor(of: find.text('تستمع الآن'), matching: find.byType(IgnorePointer)).first);
       expect(fade.ignoring, isTrue);
+      // كلمات القصة تبقى ظاهرة بعد اختفاء الأدوات.
+      final words = tester.widget<AnimatedOpacity>(find
+          .ancestor(of: find.text('حكاية القمر والبحيرة').first, matching: find.byType(AnimatedOpacity))
+          .first);
+      expect(words.opacity, 1);
       await tester.tapAt(Offset(size.width / 2, size.height / 2));
       await tester.pump(const Duration(milliseconds: 500));
       final back = tester.widget<IgnorePointer>(find.ancestor(of: find.text('تستمع الآن'), matching: find.byType(IgnorePointer)).first);
