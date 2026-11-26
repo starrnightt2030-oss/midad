@@ -1,0 +1,60 @@
+{
+  "id": "14_nile_balcony",
+  "title": "شرفة على النيل",
+  "categories": [
+    "spiritual",
+    "hope"
+  ],
+  "moods": [
+    "sea",
+    "desert"
+  ],
+  "width": 941,
+  "height": 1672,
+  "source_quality": "individual",
+  "masks_ready": true,
+  "focus": [
+    0.55,
+    0.5
+  ],
+  "tint": "#3A2218",
+  "sound": "wind",
+  "layers": [
+    {
+      "effect": "ripple",
+      "channel": "r",
+      "speed": 0.9,
+      "amount": 0.0028,
+      "scale": 1.0
+    },
+    {
+      "effect": "sway",
+      "channel": "g",
+      "speed": 0.5,
+      "amount": 0.002,
+      "scale": 1.0
+    },
+    {
+      "effect": "glow",
+      "channel": "b",
+      "speed": 0.7,
+      "amount": 0.12,
+      "scale": 1.0
+    }
+  ],
+  "particles": [
+    {
+      "type": "petals",
+      "area": [
+        0.25,
+        0.0,
+        0.6,
+        0.45
+      ],
+      "count": 4,
+      "color": "#E8457A",
+      "size": 0.6,
+      "speed": 0.7
+    }
+  ]
+}

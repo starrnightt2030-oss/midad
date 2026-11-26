@@ -1,0 +1,84 @@
+{
+  "id": "23_desert_station",
+  "title": "محطة الصحراء",
+  "categories": [
+    "meditation",
+    "sleep"
+  ],
+  "moods": [
+    "desert",
+    "night"
+  ],
+  "width": 941,
+  "height": 1672,
+  "source_quality": "individual",
+  "masks_ready": true,
+  "focus": [
+    0.5,
+    0.5
+  ],
+  "tint": "#1A1A2A",
+  "sound": "wind",
+  "layers": [
+    {
+      "effect": "ripple",
+      "channel": "r",
+      "speed": 0.5,
+      "amount": 0.0018,
+      "scale": 1.0
+    },
+    {
+      "effect": "twinkle",
+      "channel": "g",
+      "speed": 1.4,
+      "amount": 0.55,
+      "scale": 1.0
+    },
+    {
+      "effect": "drift",
+      "channel": "g",
+      "speed": 0.015,
+      "amount": 0.006,
+      "scale": 1.0,
+      "dir": [
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "effect": "glow",
+      "channel": "b",
+      "speed": 0.6,
+      "amount": 0.1,
+      "scale": 1.0
+    }
+  ],
+  "particles": [
+    {
+      "type": "motes",
+      "area": [
+        0.6,
+        0.3,
+        1.0,
+        0.48
+      ],
+      "count": 10,
+      "color": "#F3D9A4",
+      "size": 0.8,
+      "speed": 0.7
+    },
+    {
+      "type": "petals",
+      "area": [
+        0.0,
+        0.0,
+        0.35,
+        0.5
+      ],
+      "count": 4,
+      "color": "#E8457A",
+      "size": 0.6,
+      "speed": 0.7
+    }
+  ]
+}

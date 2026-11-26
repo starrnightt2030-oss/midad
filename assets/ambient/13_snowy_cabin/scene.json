@@ -1,0 +1,67 @@
+{
+  "id": "13_snowy_cabin",
+  "title": "كوخ الثلج",
+  "categories": [
+    "rain_winter",
+    "sleep"
+  ],
+  "moods": [
+    "snow"
+  ],
+  "width": 941,
+  "height": 1672,
+  "source_quality": "individual",
+  "masks_ready": true,
+  "focus": [
+    0.4,
+    0.5
+  ],
+  "tint": "#0E1A2E",
+  "sound": "fireplace",
+  "layers": [
+    {
+      "effect": "flow",
+      "channel": "r",
+      "speed": 0.3,
+      "amount": 0.003,
+      "scale": 1.0,
+      "dir": [
+        0.196,
+        0.981
+      ]
+    },
+    {
+      "effect": "mist",
+      "channel": "g",
+      "speed": 0.06,
+      "amount": 0.35,
+      "scale": 2.0,
+      "dir": [
+        0.287,
+        -0.958
+      ]
+    },
+    {
+      "effect": "glow",
+      "channel": "b",
+      "speed": 0.8,
+      "amount": 0.13,
+      "scale": 1.0
+    }
+  ],
+  "particles": [
+    {
+      "type": "snow",
+      "area": [
+        0.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "count": 70,
+      "color": "#FFFFFF",
+      "size": 1.0,
+      "speed": 1.0
+    }
+  ]
+}

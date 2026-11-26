@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
+import 'ambient/ambient_scene_engine.dart';
 import 'config.dart';
 import 'data/repository.dart';
 import 'screens/splash_screen.dart';
@@ -35,6 +36,8 @@ Future<void> main() async {
   library.load();
   account.load();
   downloads.load();
+  final ambient = AmbientSceneSelector();
+  AtheerLiveScenesEngine.init(ambient);
   runApp(MultiProvider(
     providers: [
       ChangeNotifierProvider.value(value: repo),
@@ -43,6 +46,7 @@ Future<void> main() async {
       ChangeNotifierProvider.value(value: account),
       ChangeNotifierProvider.value(value: downloads),
       ChangeNotifierProvider.value(value: themes),
+      ChangeNotifierProvider.value(value: ambient),
     ],
     child: const AtheerApp(),
   ));

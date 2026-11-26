@@ -25,6 +25,30 @@
       "name": "ليل",
       "icon": "night",
       "file": "ambience/night.m4a"
+    },
+    {
+      "id": "forest",
+      "name": "غابة",
+      "icon": "forest",
+      "file": "ambience/forest.m4a"
+    },
+    {
+      "id": "fire",
+      "name": "مدفأة",
+      "icon": "fire",
+      "file": "ambience/fire.m4a"
+    },
+    {
+      "id": "wind",
+      "name": "رياح",
+      "icon": "wind",
+      "file": "ambience/wind.m4a"
+    },
+    {
+      "id": "stream",
+      "name": "جدول ماء",
+      "icon": "stream",
+      "file": "ambience/stream.m4a"
     }
   ],
   "works": []

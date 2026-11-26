@@ -1,0 +1,72 @@
+{
+  "id": "07_desert_serenity",
+  "title": "سكينة الصحراء",
+  "categories": [
+    "spiritual",
+    "sleep",
+    "meditation"
+  ],
+  "moods": [
+    "desert",
+    "night"
+  ],
+  "width": 941,
+  "height": 1672,
+  "source_quality": "individual",
+  "masks_ready": true,
+  "focus": [
+    0.35,
+    0.5
+  ],
+  "tint": "#1A1A2E",
+  "sound": "wind",
+  "layers": [
+    {
+      "effect": "sway",
+      "channel": "r",
+      "speed": 0.5,
+      "amount": 0.003,
+      "scale": 0.8
+    },
+    {
+      "effect": "twinkle",
+      "channel": "g",
+      "speed": 1.4,
+      "amount": 0.55,
+      "scale": 1.0
+    },
+    {
+      "effect": "drift",
+      "channel": "g",
+      "speed": 0.02,
+      "amount": 0.006,
+      "scale": 1.0,
+      "dir": [
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "effect": "glow",
+      "channel": "b",
+      "speed": 0.7,
+      "amount": 0.12,
+      "scale": 1.0
+    }
+  ],
+  "particles": [
+    {
+      "type": "motes",
+      "area": [
+        0.0,
+        0.55,
+        1.0,
+        0.92
+      ],
+      "count": 18,
+      "color": "#F3D9A4",
+      "size": 0.8,
+      "speed": 0.7
+    }
+  ]
+}

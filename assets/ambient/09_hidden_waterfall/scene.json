@@ -1,0 +1,76 @@
+{
+  "id": "09_hidden_waterfall",
+  "title": "الشلال المخفي",
+  "categories": [
+    "nature",
+    "meditation"
+  ],
+  "moods": [
+    "forest"
+  ],
+  "width": 941,
+  "height": 1672,
+  "source_quality": "individual",
+  "masks_ready": true,
+  "focus": [
+    0.6,
+    0.5
+  ],
+  "tint": "#0C2228",
+  "sound": "stream",
+  "layers": [
+    {
+      "effect": "flow",
+      "channel": "r",
+      "speed": 0.9,
+      "amount": 0.006,
+      "scale": 1.6,
+      "dir": [
+        0.0,
+        1.0
+      ]
+    },
+    {
+      "effect": "ripple",
+      "channel": "g",
+      "speed": 0.8,
+      "amount": 0.003,
+      "scale": 1.0
+    },
+    {
+      "effect": "glow",
+      "channel": "b",
+      "speed": 0.6,
+      "amount": 0.16,
+      "scale": 1.0
+    }
+  ],
+  "particles": [
+    {
+      "type": "spray",
+      "area": [
+        0.5,
+        0.48,
+        0.86,
+        0.6
+      ],
+      "count": 12,
+      "color": "#FFFFFF",
+      "size": 1.0,
+      "speed": 1.0
+    },
+    {
+      "type": "fireflies",
+      "area": [
+        0.0,
+        0.25,
+        0.45,
+        0.9
+      ],
+      "count": 10,
+      "color": "#C8F0FF",
+      "size": 0.8,
+      "speed": 0.7
+    }
+  ]
+}

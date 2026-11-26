@@ -1,0 +1,94 @@
+{
+  "id": "02_rainy_window",
+  "title": "نافذة المطر",
+  "categories": [
+    "rain_winter",
+    "sleep",
+    "meditation"
+  ],
+  "moods": [
+    "rain"
+  ],
+  "width": 941,
+  "height": 1672,
+  "source_quality": "individual",
+  "masks_ready": true,
+  "focus": [
+    0.6,
+    0.5
+  ],
+  "tint": "#1B1A1C",
+  "sound": "rain",
+  "layers": [
+    {
+      "effect": "flow",
+      "channel": "r",
+      "speed": 0.35,
+      "amount": 0.004,
+      "scale": 1.4,
+      "dir": [
+        0.0,
+        1.0
+      ]
+    },
+    {
+      "effect": "mist",
+      "channel": "g",
+      "speed": 0.25,
+      "amount": 0.35,
+      "scale": 2.0,
+      "dir": [
+        0.0,
+        -1.0
+      ]
+    },
+    {
+      "effect": "glow",
+      "channel": "b",
+      "speed": 0.7,
+      "amount": 0.1,
+      "scale": 1.0
+    }
+  ],
+  "particles": [
+    {
+      "type": "glassDrops",
+      "area": [
+        0.42,
+        0.02,
+        0.98,
+        0.54
+      ],
+      "count": 26,
+      "color": "#FFFFFF",
+      "size": 1.0,
+      "speed": 1.0
+    },
+    {
+      "type": "rain",
+      "area": [
+        0.42,
+        0.0,
+        0.98,
+        0.56
+      ],
+      "count": 24,
+      "color": "#DDE6F0",
+      "size": 0.8,
+      "speed": 0.8
+    },
+    {
+      "type": "steam",
+      "area": [
+        0.7,
+        0.42,
+        0.81,
+        0.56
+      ],
+      "count": 7,
+      "color": "#FFFFFF",
+      "size": 0.55,
+      "speed": 0.8
+    }
+  ]
+}

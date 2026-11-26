@@ -21,6 +21,10 @@ dependencies:
   share_plus: ^10.1.4
   url_launcher: ^6.3.0
 
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
 flutter:
   uses-material-design: true
   assets:
@@ -29,3 +33,33 @@ flutter:
     - assets/brand/
     - assets/sounds/
     - content/covers/
+    - assets/ambient/
+    - assets/ambient/01_moonlight_lake/
+    - assets/ambient/02_rainy_window/
+    - assets/ambient/03_peaceful_forest/
+    - assets/ambient/04_ocean_sunset/
+    - assets/ambient/05_starry_night/
+    - assets/ambient/06_cozy_library/
+    - assets/ambient/07_desert_serenity/
+    - assets/ambient/08_mountain_sunrise/
+    - assets/ambient/09_hidden_waterfall/
+    - assets/ambient/10_mosque_courtyard/
+    - assets/ambient/11_golden_river/
+    - assets/ambient/12_lavender_fields/
+    - assets/ambient/13_snowy_cabin/
+    - assets/ambient/14_nile_balcony/
+    - assets/ambient/15_midnight_ocean/
+    - assets/ambient/16_alpine_lake/
+    - assets/ambient/17_campfire_night/
+    - assets/ambient/18_sunlight_garden/
+    - assets/ambient/19_northern_lights/
+    - assets/ambient/20_arabian_night/
+    - assets/ambient/21_moonlit_shore/
+    - assets/ambient/22_sunset_reading_nook/
+    - assets/ambient/23_desert_station/
+    - assets/ambient/24_snowy_village/
+    - assets/ambient/25_ocean_depths/
+    - assets/ambient/26_volcano_observatory/
+    - assets/ambient/27_sky_city/
+  shaders:
+    - shaders/ambient_scene.frag

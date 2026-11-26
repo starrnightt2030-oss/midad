@@ -1,0 +1,71 @@
+{
+  "id": "05_starry_night",
+  "title": "ليلة النجوم",
+  "categories": [
+    "sleep",
+    "meditation"
+  ],
+  "moods": [
+    "night",
+    "embers"
+  ],
+  "width": 941,
+  "height": 1672,
+  "source_quality": "individual",
+  "masks_ready": true,
+  "focus": [
+    0.5,
+    0.5
+  ],
+  "tint": "#0B1226",
+  "sound": "fireplace",
+  "layers": [
+    {
+      "effect": "ripple",
+      "channel": "r",
+      "speed": 0.9,
+      "amount": 0.003,
+      "scale": 1.0
+    },
+    {
+      "effect": "twinkle",
+      "channel": "g",
+      "speed": 1.5,
+      "amount": 0.6,
+      "scale": 1.0
+    },
+    {
+      "effect": "drift",
+      "channel": "g",
+      "speed": 0.02,
+      "amount": 0.006,
+      "scale": 1.0,
+      "dir": [
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "effect": "glow",
+      "channel": "b",
+      "speed": 1.6,
+      "amount": 0.14,
+      "scale": 1.0
+    }
+  ],
+  "particles": [
+    {
+      "type": "embers",
+      "area": [
+        0.62,
+        0.66,
+        0.8,
+        0.8
+      ],
+      "count": 14,
+      "color": "#FFB060",
+      "size": 0.8,
+      "speed": 1.0
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "id": "01_moonlight_lake",
+  "title": "بحيرة ضوء القمر",
+  "categories": [
+    "sleep",
+    "nature"
+  ],
+  "moods": [
+    "night"
+  ],
+  "width": 941,
+  "height": 1672,
+  "source_quality": "individual",
+  "masks_ready": true,
+  "focus": [
+    0.55,
+    0.5
+  ],
+  "tint": "#0B1A2E",
+  "sound": "night",
+  "layers": [
+    {
+      "effect": "ripple",
+      "channel": "r",
+      "speed": 1.0,
+      "amount": 0.0035,
+      "scale": 1.0
+    },
+    {
+      "effect": "drift",
+      "channel": "g",
+      "speed": 0.03,
+      "amount": 0.012,
+      "scale": 1.0,
+      "dir": [
+        1,
+        0
+      ]
+    },
+    {
+      "effect": "twinkle",
+      "channel": "g",
+      "speed": 1.6,
+      "amount": 0.55
+    },
+    {
+      "effect": "glow",
+      "channel": "b",
+      "speed": 0.8,
+      "amount": 0.12
+    }
+  ],
+  "particles": [
+    {
+      "type": "fireflies",
+      "area": [
+        0.0,
+        0.5,
+        0.45,
+        0.8
+      ],
+      "count": 9,
+      "color": "#F3E6A0",
+      "size": 0.8,
+      "speed": 0.7
+    }
+  ]
+}

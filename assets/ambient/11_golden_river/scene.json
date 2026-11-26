@@ -1,0 +1,67 @@
+{
+  "id": "11_golden_river",
+  "title": "النهر الذهبي",
+  "categories": [
+    "nature",
+    "hope"
+  ],
+  "moods": [
+    "forest"
+  ],
+  "width": 941,
+  "height": 1672,
+  "source_quality": "individual",
+  "masks_ready": true,
+  "focus": [
+    0.55,
+    0.5
+  ],
+  "tint": "#3A2A18",
+  "sound": "stream",
+  "layers": [
+    {
+      "effect": "flow",
+      "channel": "r",
+      "speed": 0.45,
+      "amount": 0.0045,
+      "scale": 1.2,
+      "dir": [
+        -0.148,
+        0.989
+      ]
+    },
+    {
+      "effect": "mist",
+      "channel": "g",
+      "speed": 0.015,
+      "amount": 0.25,
+      "scale": 1.0,
+      "dir": [
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "effect": "sway",
+      "channel": "b",
+      "speed": 0.55,
+      "amount": 0.002,
+      "scale": 1.0
+    }
+  ],
+  "particles": [
+    {
+      "type": "motes",
+      "area": [
+        0.2,
+        0.2,
+        0.9,
+        0.5
+      ],
+      "count": 10,
+      "color": "#FFE7B0",
+      "size": 1.0,
+      "speed": 1.0
+    }
+  ]
+}
