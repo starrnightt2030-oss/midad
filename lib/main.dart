@@ -8,10 +8,11 @@ import 'data/repository.dart';
 import 'screens/splash_screen.dart';
 import 'screens/worlds_screen.dart';
 import 'state/library.dart';
+import 'state/audio_handler.dart';
 import 'state/player.dart';
 import 'theme.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
@@ -21,6 +22,7 @@ void main() {
   final repo = ContentRepository();
   final library = LibraryStore();
   final player = PlayerController(repo);
+  player.attachMedia(await initAudioHandler());
   repo.load();
   library.load();
   runApp(MultiProvider(

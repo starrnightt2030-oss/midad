@@ -1,0 +1,29 @@
+name: مزامنة المحتوى مع Supabase
+
+# ينقل محتوى مجلد content/ إلى قاعدة Supabase.
+# يدوي فقط: المحتوى الحالي تجريبي ولا يُنقل تلقائيًا.
+# المحتوى الحقيقي يُضاف من لوحة الإدارة (المرحلة الثالثة).
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-supabase
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: رفع المحتوى
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python tools/sync_supabase.py

@@ -17,6 +17,12 @@ class AppConfig {
   static const String githubRepo = 'starrnightt2030-oss/midad';
   static const String developerGithub = 'https://github.com/starrnightt2030-oss';
 
+  /// Supabase: المصدر الأساسي للمحتوى. المفتاح هنا هو المفتاح العام (publishable)
+  /// المخصص للتطبيقات، والحماية الفعلية في قواعد قاعدة البيانات (RLS).
+  static const String supabaseUrl = 'https://scrynlokpplwolbltghf.supabase.co';
+  static const String supabaseKey = 'sb_publishable_TPpCurwB381uA_Pe9cLOew_CaLbgC-q';
+
+  /// احتياطي: نسخة المحتوى على GitHub (تُستخدم لو Supabase غير متاح أو فارغ).
   static const String remoteContentBase = 'https://raw.githubusercontent.com/$githubRepo/main/content/';
 
   /// مجلد المحتوى المدمج داخل التطبيق (نسخة احتياطية تعمل بدون إنترنت).

@@ -6,6 +6,7 @@ import 'package:just_audio/just_audio.dart';
 import '../config.dart';
 import '../data/repository.dart';
 import '../models.dart';
+import 'audio_handler.dart';
 
 /// يتحكم في صوت الراوي، الموسيقى الخلفية، والتزامن مع النص.
 /// لو الفصل ليس له ملف صوت بعد، يعمل بـ"ساعة عرض" تقديرية حتى تظهر القراءة الحية.
@@ -61,6 +62,41 @@ class PlayerController extends ChangeNotifier {
 
   Timer? _demoTimer;
   Timer? _sleepTimer;
+  Timer? _fadeTimer;
+
+  /// إشعار التشغيل وأزرار شاشة القفل (null لو الخدمة غير متاحة).
+  AtheerAudioHandler? _media;
+
+  void attachMedia(AtheerAudioHandler? h) {
+    _media = h;
+    if (h == null) return;
+    h.onPlay = play;
+    h.onPause = pause;
+    h.onSeek = seek;
+    h.onSkip = skip;
+  }
+
+  void _syncItem() {
+    final m = _media, w = work, ch = chapter;
+    if (m == null || w == null) return;
+    Uri? art;
+    final cover = w.cover;
+    if (cover != null && cover.isNotEmpty) {
+      final r = repo.resolve(cover);
+      if (r.remote) art = Uri.tryParse(r.path);
+    }
+    m.showItem(
+      id: '${w.id}/${ch?.id ?? ''}',
+      title: ch == null || w.chapters.length < 2 ? w.title : '${w.title} · ${ch.title}',
+      album: repo.catalog?.worldOf(w)?.name,
+      artist: w.narrator.isEmpty ? AppConfig.appName : w.narrator,
+      duration: duration > Duration.zero ? duration : null,
+      artUri: art,
+    );
+  }
+
+  void _syncState() =>
+      _media?.showState(playing: playing, loading: loadingChapter || buffering, position: position, speed: speed);
 
   ChapterRef? get chapter => (work == null || work!.chapters.isEmpty) ? null : work!.chapters[chapterIndex];
   double get seconds => position.inMilliseconds / 1000;
@@ -110,6 +146,8 @@ class PlayerController extends ChangeNotifier {
     loadingChapter = false;
     _tickText();
     notifyListeners();
+    _syncItem();
+    _syncState();
     if (autoplay) play();
   }
 
@@ -155,6 +193,7 @@ class PlayerController extends ChangeNotifier {
     position = d;
     if (!demo) _voice.seek(d);
     _tickText();
+    _syncState();
   }
 
   void skip(int secs) => seek(position + Duration(seconds: secs));
@@ -179,6 +218,7 @@ class PlayerController extends ChangeNotifier {
     speed = speeds[(i + 1) % speeds.length];
     _voice.setSpeed(speed);
     notifyListeners();
+    _syncState();
   }
 
   Future<void> setAmbience(Ambience? a) async {
@@ -211,24 +251,55 @@ class PlayerController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// مدة الخفوت التدريجي قبل الإيقاف (حتى لا يوقظ التوقف المفاجئ النائم).
+  static const _fadeSteps = 20;
+  static const _fadeStep = Duration(seconds: 1);
+
   void setSleep(int? minutes) {
     _sleepTimer?.cancel();
+    _cancelFade();
     if (minutes == null) {
       sleepAt = null;
     } else {
       sleepAt = DateTime.now().add(Duration(minutes: minutes));
-      _sleepTimer = Timer(Duration(minutes: minutes), () {
-        pause();
-        sleepAt = null;
-        notifyListeners();
-      });
+      final total = Duration(minutes: minutes);
+      final fadeAt = total - _fadeStep * _fadeSteps;
+      _sleepTimer = Timer(fadeAt.isNegative ? Duration.zero : fadeAt, _fadeOutAndStop);
     }
     notifyListeners();
+  }
+
+  void _fadeOutAndStop() {
+    var step = 0;
+    _fadeTimer?.cancel();
+    _fadeTimer = Timer.periodic(_fadeStep, (t) {
+      step++;
+      final k = (1 - step / _fadeSteps).clamp(0.0, 1.0);
+      _voice.setVolume(k);
+      _amb.setVolume(ambienceVolume * k);
+      if (step >= _fadeSteps) {
+        t.cancel();
+        pause();
+        _voice.setVolume(1);
+        _amb.setVolume(ambienceVolume);
+        sleepAt = null;
+        notifyListeners();
+      }
+    });
+  }
+
+  void _cancelFade() {
+    if (_fadeTimer == null) return;
+    _fadeTimer!.cancel();
+    _fadeTimer = null;
+    _voice.setVolume(1);
+    _amb.setVolume(ambienceVolume);
   }
 
   void _setPlaying(bool v) {
     playing = v;
     notifyListeners();
+    _syncState();
   }
 
   void _tickText() {
@@ -257,6 +328,7 @@ class PlayerController extends ChangeNotifier {
     }
     _demoTimer?.cancel();
     _sleepTimer?.cancel();
+    _fadeTimer?.cancel();
     _voice.dispose();
     _amb.dispose();
     super.dispose();
