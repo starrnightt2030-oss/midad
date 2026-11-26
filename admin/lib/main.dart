@@ -10,8 +10,45 @@ import 'theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Supabase.initialize(url: AdminConfig.supabaseUrl, anonKey: AdminConfig.supabaseKey);
+  try {
+    await Supabase.initialize(url: AdminConfig.supabaseUrl, anonKey: AdminConfig.supabaseKey)
+        .timeout(const Duration(seconds: 20));
+  } catch (e) {
+    runApp(_BootError(error: e.toString()));
+    return;
+  }
   runApp(const AdminApp());
+}
+
+/// تظهر بدل الصفحة الفارغة لو تعذّر الاتصال بقاعدة البيانات عند الفتح.
+class _BootError extends StatelessWidget {
+  final String error;
+  const _BootError({required this.error});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: adminTheme(),
+      home: Directionality(
+        textDirection: TextDirection.rtl,
+        child: Scaffold(
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Icons.cloud_off_rounded, size: 48),
+                const SizedBox(height: 12),
+                const Text('تعذّر الاتصال بقاعدة البيانات. تأكد من الإنترنت ثم أعد تحميل الصفحة.', textAlign: TextAlign.center),
+                const SizedBox(height: 8),
+                Text(error, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: Colors.white54)),
+              ]),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class AdminApp extends StatelessWidget {

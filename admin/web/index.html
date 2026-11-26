@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="ar" dir="rtl">
 <head>
   <!--
     If you are serving your web app in a path other than the root, change the
@@ -18,7 +18,7 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="لوحة إدارة أثير">
 
   <!--
     Uncomment the tag below to lay the app out underneath the parts of the
@@ -41,18 +41,23 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>atheer_admin</title>
+  <title>أثير — لوحة الإدارة</title>
   <link rel="manifest" href="manifest.json">
 </head>
-<body>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
-
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
+<body style="margin:0;background:#130B22">
+  <div id="boot" style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#E9DDFF;font-family:system-ui,sans-serif;text-align:center;padding:24px">
+    <div style="font-size:34px;font-weight:700">أثير</div>
+    <div id="boot-msg" style="opacity:.75">جاري تحميل لوحة الإدارة…</div>
+  </div>
+  <script>
+    window.addEventListener('error', function (e) {
+      var m = document.getElementById('boot-msg');
+      if (m) m.textContent = 'حدث خطأ أثناء التحميل: ' + (e.message || e.filename || 'غير معروف');
+    }, true);
+    window.addEventListener('flutter-first-frame', function () {
+      var b = document.getElementById('boot'); if (b) b.remove();
+    });
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
