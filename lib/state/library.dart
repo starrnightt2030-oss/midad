@@ -24,6 +24,15 @@ class LibraryStore extends ChangeNotifier {
   double fontScale = 1.0;
   bool introSound = true;
 
+  /// شاشة الترحيب تظهر مرة واحدة.
+  bool onboarded = false;
+
+  /// هدف المستخدم: sleep | relax | reflect
+  String goal = 'sleep';
+
+  /// اكتمل تحميل الإعدادات من الجهاز.
+  bool loaded = false;
+
   SharedPreferences? _p;
 
   Future<void> load() async {
@@ -32,6 +41,8 @@ class LibraryStore extends ChangeNotifier {
     recent.addAll(_p!.getStringList('recent') ?? []);
     fontScale = _p!.getDouble('fontScale') ?? 1.0;
     introSound = _p!.getBool('introSound') ?? true;
+    onboarded = _p!.getBool('onboarded') ?? false;
+    goal = _p!.getString('goal') ?? 'sleep';
     final q = _p!.getString('quotes');
     if (q != null) {
       try {
@@ -44,6 +55,7 @@ class LibraryStore extends ChangeNotifier {
         (jsonDecode(lc) as Map).forEach((k, v) => lastChapter['$k'] = v as int);
       } catch (_) {}
     }
+    loaded = true;
     notifyListeners();
   }
 
@@ -74,6 +86,14 @@ class LibraryStore extends ChangeNotifier {
   void removeQuote(SavedQuote q) {
     quotes.remove(q);
     _p?.setString('quotes', jsonEncode(quotes.map((e) => e.toJson()).toList()));
+    notifyListeners();
+  }
+
+  void finishOnboarding(String g) {
+    goal = g;
+    onboarded = true;
+    _p?.setString('goal', g);
+    _p?.setBool('onboarded', true);
     notifyListeners();
   }
 

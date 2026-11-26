@@ -57,7 +57,7 @@ class _CinematicSplashState extends State<CinematicSplash> with TickerProviderSt
 
   @override
   Widget build(BuildContext context) {
-    const gold = MidadColors.saffron;
+    final gold = MidadColors.saffron;
     return Scaffold(
       backgroundColor: Colors.black,
       body: AnimatedBuilder(
@@ -77,9 +77,9 @@ class _CinematicSplashState extends State<CinematicSplash> with TickerProviderSt
           return Stack(fit: StackFit.expand, children: [
             Opacity(
               opacity: sky,
-              child: const DecoratedBox(
+              child: DecoratedBox(
                 decoration: BoxDecoration(
-                  gradient: RadialGradient(center: Alignment(0, -0.2), radius: 1.1, colors: [Color(0xFF16213F), MidadColors.ink, Colors.black], stops: [0, 0.55, 1]),
+                  gradient: RadialGradient(center: const Alignment(0, -0.2), radius: 1.1, colors: [MidadColors.inkTop, MidadColors.ink, Colors.black], stops: const [0, 0.55, 1]),
                 ),
               ),
             ),

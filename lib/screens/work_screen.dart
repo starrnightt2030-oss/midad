@@ -3,7 +3,6 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../data/repository.dart';
 import '../models.dart';
 import '../state/library.dart';
 import '../state/player.dart';
@@ -19,11 +18,9 @@ class WorkScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cat = context.watch<ContentRepository>().catalog!;
     final lib = context.watch<LibraryStore>();
     final player = context.watch<PlayerController>();
-    final world = cat.worldOf(work);
-    final color = world?.color ?? MidadColors.saffron;
+    final color = MidadColors.accent;
     final fav = lib.isFav(work.id);
 
     return Scaffold(

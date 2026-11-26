@@ -38,10 +38,9 @@ class _PlayerScreenState extends State<PlayerScreen> with SingleTickerProviderSt
   Widget build(BuildContext context) {
     final p = context.watch<PlayerController>();
     final lib = context.watch<LibraryStore>();
-    final cat = context.watch<ContentRepository>().catalog;
     final w = p.work;
     if (w == null) return const Scaffold();
-    final color = cat?.worldOf(w)?.color ?? MidadColors.saffron;
+    final color = MidadColors.accent;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       if (p.playing && !_spin.isAnimating) {

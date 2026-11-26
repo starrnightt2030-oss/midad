@@ -273,4 +273,4 @@ Route<T> sheetRoute<T>(Widget page) => PageRouteBuilder<T>(
       },
     );
 
-const midadBg = MidadColors.ink;
+Color get midadBg => MidadColors.ink;

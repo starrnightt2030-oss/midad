@@ -8,9 +8,7 @@ import '../models.dart';
 import '../state/library.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
-import '../widgets/cover_art.dart';
-import '../widgets/mini_player.dart';
-import 'work_screen.dart';
+import '../widgets/story_card.dart';
 
 class LibraryScreen extends StatelessWidget {
   const LibraryScreen({super.key});
@@ -24,28 +22,35 @@ class LibraryScreen extends StatelessWidget {
 
     return DefaultTabController(
       length: 3,
-      child: Scaffold(
-        backgroundColor: MidadColors.ink,
-        appBar: AppBar(
-          backgroundColor: MidadColors.ink,
-          title: Text('مكتبتي', style: MidadText.title(size: 22)),
-          bottom: TabBar(
-            indicatorColor: MidadColors.saffron,
-            labelColor: MidadColors.saffron,
+      child: SafeArea(
+        bottom: false,
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 4),
+            child: Text('مكتبتي', style: MidadText.title(size: 26)),
+          ),
+          TabBar(
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            dividerColor: Colors.transparent,
+            indicatorSize: TabBarIndicatorSize.tab,
+            indicator: BoxDecoration(gradient: MidadColors.palette.button, borderRadius: BorderRadius.circular(24)),
+            labelColor: MidadColors.ink,
             unselectedLabelColor: Colors.white70,
             labelStyle: MidadText.ui(weight: FontWeight.w700),
-            tabs: const [Tab(text: 'أكمل'), Tab(text: 'المفضلة'), Tab(text: 'خواطري')],
+            splashBorderRadius: BorderRadius.circular(24),
+            labelPadding: const EdgeInsets.symmetric(horizontal: 18),
+            tabs: const [Tab(text: 'أكمل', height: 40), Tab(text: 'المفضلة', height: 40), Tab(text: 'خواطري', height: 40)],
           ),
-        ),
-        body: Column(children: [
+          const SizedBox(height: 6),
           Expanded(
             child: TabBarView(children: [
               _works(context, recent, 'ابدأ أي حكاية وستجدها هنا'),
-              _works(context, favs, 'اضغط القلب على أي عمل ليُحفظ هنا'),
+              _works(context, favs, 'اضغط القلب على أي قصة لتُحفظ هنا'),
               _quotes(context, lib),
             ]),
           ),
-          const SafeArea(top: false, child: MiniPlayer()),
         ]),
       ),
     );
@@ -56,20 +61,10 @@ class LibraryScreen extends StatelessWidget {
   Widget _works(BuildContext context, List<Work> list, String empty) {
     if (list.isEmpty) return _empty(empty);
     return GridView.builder(
-      padding: const EdgeInsets.all(18),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, childAspectRatio: 0.56, crossAxisSpacing: 14, mainAxisSpacing: 16),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: 0.86, crossAxisSpacing: 14, mainAxisSpacing: 14),
       itemCount: list.length,
-      itemBuilder: (_, i) {
-        final w = list[i];
-        return GestureDetector(
-          onTap: () => Navigator.of(context).push(fadeRoute(WorkScreen(work: w))),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            AspectRatio(aspectRatio: 0.75, child: CoverArt(art: w.art, url: w.cover, radius: BorderRadius.circular(14))),
-            const SizedBox(height: 8),
-            Text(w.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: MidadText.ui(size: 12, weight: FontWeight.w700)),
-          ]),
-        );
-      },
+      itemBuilder: (_, i) => StoryCard(work: list[i], width: double.infinity, height: double.infinity),
     );
   }
 

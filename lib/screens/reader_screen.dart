@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../data/repository.dart';
 import '../state/library.dart';
 import '../state/player.dart';
 import '../theme.dart';
@@ -28,11 +27,10 @@ class _ReaderScreenState extends State<ReaderScreen> {
   Widget build(BuildContext context) {
     final p = context.watch<PlayerController>();
     final lib = context.watch<LibraryStore>();
-    final cat = context.watch<ContentRepository>().catalog;
     final w = p.work;
     final s = p.script;
     if (w == null) return const Scaffold();
-    final accent = Color.lerp(cat?.worldOf(w)?.color ?? MidadColors.saffron, MidadColors.paperInk, 0.35)!;
+    final accent = Color.lerp(MidadColors.accent, MidadColors.paperInk, 0.35)!;
 
     if (_follow && p.playing && p.lineIndex != _lastLine) {
       _lastLine = p.lineIndex;

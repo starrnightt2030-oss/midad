@@ -3,7 +3,6 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../data/repository.dart';
 import '../models.dart';
 import '../state/library.dart';
 import '../state/player.dart';
@@ -21,11 +20,10 @@ class LiveReadScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.watch<PlayerController>();
     final lib = context.watch<LibraryStore>();
-    final cat = context.watch<ContentRepository>().catalog;
     final w = p.work;
     final s = p.script;
     if (w == null) return const Scaffold();
-    final color = cat?.worldOf(w)?.color ?? MidadColors.saffron;
+    final color = MidadColors.accent;
     final hasLines = s != null && s.lines.isNotEmpty;
     final line = hasLines ? s!.lines[p.lineIndex.clamp(0, s.lines.length - 1)] : null;
     final spk = line == null ? color : s!.colorOf(line.speaker);
