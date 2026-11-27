@@ -10,16 +10,60 @@ class World {
   final Color color;
   final String art;
 
-  World({required this.id, required this.name, required this.short, required this.tagline, required this.color, required this.art});
+  /// وصف القسم (يظهر في صفحته).
+  final String description;
 
-  factory World.fromJson(Map<String, dynamic> j) => World(
-        id: j['id'] as String,
-        name: (j['name'] ?? '') as String,
-        short: (j['short'] ?? j['name'] ?? '') as String,
-        tagline: (j['tagline'] ?? '') as String,
-        color: parseHex(j['color'] as String?),
-        art: (j['art'] ?? 'storm') as String,
-      );
+  /// اللون الثاني في هوية القسم (التدرّج).
+  final Color color2;
+
+  /// صورة بديلة رفعها الأدمن. لو فاضية نستخدم صورة القسم المضمّنة في التطبيق.
+  final String? cover;
+
+  /// ظاهر في «عوالم أثير».
+  final bool visible;
+
+  /// لو القسم فاضي: 'soon' يظهر «قريبًا»، 'hide' يختفي.
+  final String emptyMode;
+
+  final bool premium;
+
+  World({
+    required this.id,
+    required this.name,
+    required this.short,
+    required this.tagline,
+    required this.color,
+    required this.art,
+    this.description = '',
+    Color? color2,
+    this.cover,
+    this.visible = true,
+    this.emptyMode = 'soon',
+    this.premium = false,
+  }) : color2 = color2 ?? Color.lerp(color, Colors.black, 0.6)!;
+
+  factory World.fromJson(Map<String, dynamic> j) {
+    final c = parseHex(j['color'] as String?);
+    final c2 = (j['color2'] as String?) ?? '';
+    final cover = ((j['cover'] ?? '') as String).trim();
+    return World(
+      id: j['id'] as String,
+      name: (j['name'] ?? '') as String,
+      short: (j['short'] ?? j['name'] ?? '') as String,
+      tagline: (j['tagline'] ?? '') as String,
+      color: c,
+      art: (j['art'] ?? 'storm') as String,
+      description: (j['description'] ?? '') as String,
+      color2: c2.isEmpty ? null : parseHex(c2, c),
+      cover: cover.isEmpty ? null : cover,
+      visible: j['visible'] != false,
+      emptyMode: (j['empty_mode'] ?? 'soon') as String,
+      premium: j['premium'] == true,
+    );
+  }
+
+  /// صورة القسم المضمّنة في التطبيق (للأقسام الـ16).
+  String get bundledImage => 'assets/categories/$id.webp';
 }
 
 class ChapterRef {
@@ -41,6 +85,15 @@ class ChapterRef {
 class Work {
   final String id;
   final String worldId;
+
+  /// كل أقسام القصة (الأساسي + الإضافية).
+  final List<String> worldIds;
+
+  /// عدد مرات الاستماع (للأكثر استماعًا).
+  final int plays;
+
+  /// تاريخ الإضافة (لأحدث الإضافات).
+  final DateTime? added;
   final String title;
   final String kind;
   final String description;
@@ -62,6 +115,9 @@ class Work {
   Work({
     required this.id,
     required this.worldId,
+    List<String>? worldIds,
+    this.plays = 0,
+    this.added,
     required this.title,
     required this.kind,
     required this.description,
@@ -73,11 +129,14 @@ class Work {
     this.premium = false,
     this.download = false,
     this.scene = '',
-  });
+  }) : worldIds = worldIds ?? [worldId];
 
   factory Work.fromJson(Map<String, dynamic> j) => Work(
         id: j['id'] as String,
         worldId: j['world'] as String,
+        worldIds: (j['worlds'] as List?)?.map((e) => '$e').toList(),
+        plays: (j['plays'] as num?)?.toInt() ?? 0,
+        added: DateTime.tryParse('${j['added'] ?? ''}'),
         title: (j['title'] ?? '') as String,
         kind: (j['kind'] ?? '') as String,
         description: (j['description'] ?? '') as String,
@@ -119,7 +178,14 @@ class Catalog {
         ambience: ((j['ambience'] ?? []) as List).map((e) => Ambience.fromJson(e as Map<String, dynamic>)).toList(),
       );
 
-  List<Work> worksOf(String worldId) => works.where((w) => w.worldId == worldId).toList();
+  List<Work> worksOf(String worldId) => works.where((w) => w.worldIds.contains(worldId)).toList();
+
+  World? worldById(String id) {
+    for (final x in worlds) {
+      if (x.id == id) return x;
+    }
+    return null;
+  }
 
   World? worldOf(Work w) {
     for (final x in worlds) {
