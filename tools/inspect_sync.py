@@ -38,20 +38,25 @@ def main(title):
             except Exception as e:
                 print('audio download failed:', e)
             if WHISPER and src.exists():
+                # إعادة الضبط بنفس خطوات العامل لكن بدون حفظ: للتحقق قبل التطبيق.
+                import copy
+                import aligner
                 wav = Path('/tmp/inspect.wav')
                 subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', str(src), '-ac', '1', '-ar', '16000', str(wav)], check=True)
-                import aligner
-                prompt = ' '.join(ln['text'] for ln in lines)
-                heard = aligner.transcribe(str(wav), prompt)
+                heard = aligner.transcribe(str(wav))
                 print(f'HEARD {len(heard)} words')
-                for k in range(0, len(heard), 8):
-                    print('H', ' | '.join(f'{w} {a:.2f}-{b:.2f}' for w, a, b in heard[k:k + 8]))
-                k = 0
-                for i, ln in enumerate(lines):
-                    toks = (ln.get('text') or '').split()
+                for k in range(0, len(heard), 10):
+                    print('H', ' | '.join(f'{w} {a:.2f}' for w, a, b in heard[k:k + 10]))
+                new = copy.deepcopy(s)
+                aligner.split_long_lines(new)
+                stats = {}
+                ratio = aligner.apply_to_script(new, heard, stats)
+                print(f'REALIGN ratio={ratio:.0%} anchored={stats["anchored"]:.0%} max_gap={stats["max_gap"]:.1f}s')
+                for i, ln in enumerate(new['lines']):
+                    toks = ln['text'].split()
                     ws = ln.get('words') or []
-                    for j in range(0, len(toks), 8):
-                        print(f'S{i:02d}', ' | '.join(f'{toks[t]} {ws[t][0]:.2f}-{ws[t][1]:.2f}' if t < len(ws) else toks[t] for t in range(j, min(j + 8, len(toks)))))
+                    for j in range(0, len(toks), 10):
+                        print(f'N{i:02d}', ' | '.join(f'{toks[t]} {ws[t][0]:.2f}' for t in range(j, min(j + 10, len(toks)))))
             for i, ln in enumerate(lines):
                 toks = (ln.get('text') or '').split()
                 ws = ln.get('words') or []

@@ -8,12 +8,14 @@
 
 الاستخدام اليدوي للتجربة:  python tools/aligner.py audio.mp3 text.txt
 """
+import bisect
 import difflib
 import os
 import re
 import sys
 
 MODEL = os.environ.get('ALIGN_MODEL', 'medium')
+MIN_RUN = 3  # أقل عدد كلمات متتالية متطابقة نعتبرها مرتكزًا موثوقًا
 
 _TASHKEEL = re.compile('[ؐ-ًؚ-ٰٟۖ-ۭـ]')
 _NON_WORD = re.compile(r'[^\w]', re.UNICODE)
@@ -27,7 +29,7 @@ def norm(word):
     return _NON_WORD.sub('', w).replace('_', '')
 
 
-def align_words(script_words, heard):
+def align_words(script_words, heard, stats=None):
     """
     script_words: كلمات النص الأصلي بالترتيب.
     heard: [(كلمة, بداية, نهاية), ...] كما سمعها Whisper.
@@ -58,22 +60,71 @@ def align_words(script_words, heard):
             if si >= 0 and hi >= 0:
                 hits[si].append(hi)
 
-    times = [None] * len(script_words)
+    # مرشحات: مطابقة تغطي معظم الكلمة، ولا تأتي من كلمة مسموعة أطول منها بكثير (ضجيج).
+    cand = [None] * len(script_words)
     for i, hs in enumerate(hits):
-        # نقبل المطابقة لو غطّت جزءًا معقولًا من الكلمة (حتى لا تلتصق كلمة بحرف عابر).
-        if hs and len(hs) >= max(1, len(s_norm[i]) * 0.4):
-            times[i] = [min(heard[h][1] for h in hs), max(heard[h][2] for h in hs)]
+        if not hs or len(hs) < max(1, len(s_norm[i]) * 0.6):
+            continue
+        hw = sorted(set(hs))
+        heard_len = sum(len(h_norm[h]) for h in hw)
+        if heard_len and len(hs) / heard_len < 0.5:
+            continue
+        a, b = min(heard[h][1] for h in hw), max(heard[h][2] for h in hw)
+        if b - a > max(2.5, 0.25 * len(s_norm[i])):  # كلمة واحدة لا تستغرق ثواني طويلة
+            continue
+        cand[i] = (a, b, hw[0], hw[-1])
 
-    # ترتيب متصاعد: نتجاهل أي مطابقة ترجع بالزمن للخلف.
+    # نثق فقط في سلاسل من ٣ كلمات متتالية على الأقل سُمعت متتالية أيضًا؛
+    # المطابقات المعزولة غالبًا صدفة (خصوصًا لو Whisper أخطأ في جزء من الصوت).
+    def linked(i, j):
+        x, y = cand[i], cand[j]
+        return x and y and 0 <= y[2] - x[3] <= 3 and 0 <= y[0] - x[1] <= 3.0
+
+    trusted = [False] * len(script_words)
+    i = 0
+    while i < len(cand):
+        if not cand[i]:
+            i += 1
+            continue
+        j = i
+        while j + 1 < len(cand) and linked(j, j + 1):
+            j += 1
+        if j - i + 1 >= MIN_RUN:
+            for k in range(i, j + 1):
+                trusted[k] = True
+        i = j + 1
+
+    # ترتيب زمني صارم: أطول تتابع متصاعد من المرتكزات (بدل حذف كل ما يأتي بعد مرتكز خاطئ).
+    idx = [i for i in range(len(cand)) if trusted[i]]
+    prev = {}
+
+    tails, tails_i = [], []
+    for i in idx:
+        st = cand[i][0]
+        p = bisect.bisect_right(tails, st)
+        prev[i] = tails_i[p - 1] if p > 0 else None
+        if p == len(tails):
+            tails.append(st)
+            tails_i.append(i)
+        else:
+            tails[p] = st
+            tails_i[p] = i
+    keep = set()
+    k = tails_i[-1] if tails_i else None
+    while k is not None:
+        keep.add(k)
+        k = prev[k]
+    if stats is not None:
+        stats['anchored'] = len(keep) / max(1, len(script_words))
+        # أطول فجوة زمنية بلا أي مرتكز (مؤشر على جزء لم يُسمع جيدًا)
+        ts = [cand[i][0] for i in sorted(keep)]
+        stats['max_gap'] = max([b - a for a, b in zip(ts, ts[1:])] or [0.0])
+    times = [None] * len(script_words)
     last = 0.0
-    for i, t in enumerate(times):
-        if t is None:
-            continue
-        if t[0] < last - 0.05:
-            times[i] = None
-            continue
-        t[1] = max(t[1], t[0] + 0.05)
-        last = t[1]
+    for i in sorted(keep):
+        a, b = max(cand[i][0], last), cand[i][1]
+        times[i] = [a, max(b, a + 0.05)]
+        last = times[i][1]
 
     # الكلمات بلا مطابقة: نوزّع الفجوة بين جارين معروفين حسب طول الكلمات.
     end_all = heard[-1][2] if heard else 0.0
@@ -117,8 +168,9 @@ def split_long_lines(script, limit=160):
     return len(out) - len(lines)
 
 
-def apply_to_script(script, heard):
-    """يضع start و end و words لكل سطر في نص الفصل. يرجع نسبة الكلمات التي طابقت فعلًا."""
+def apply_to_script(script, heard, stats=None):
+    """يضع start و end و words لكل سطر في نص الفصل. يرجع نسبة التشابه بين النص وما سُمع.
+    stats (اختياري) يُملأ بـ anchored (نسبة الكلمات المضبوطة على الصوت مباشرة) و max_gap."""
     lines = script.get('lines') or []
     words, owner = [], []
     for li, ln in enumerate(lines):
@@ -127,7 +179,7 @@ def apply_to_script(script, heard):
             owner.append(li)
     if not words:
         raise RuntimeError('الفصل بلا نص')
-    times = align_words(words, heard)
+    times = align_words(words, heard, stats)
     per_line = [[] for _ in lines]
     for (a, b), li in zip(times, owner):
         per_line[li].append([a, b])
@@ -157,9 +209,11 @@ def transcribe(wav_path, prompt='', on_progress=None):
     """يرجع [(كلمة, بداية, نهاية), ...] من ملف wav أحادي 16 كيلوهرتز."""
     from faster_whisper import WhisperModel
     model = WhisperModel(MODEL, device='cpu', compute_type='int8')
+    # بدون initial_prompt عمدًا: تمرير نص القصة كتلميح جعل Whisper يهلوس في أول ٣٠ ثانية
+    # (كلمات إنجليزية وتوقيتات مشوّهة) فتجري الكلمات الأولى بعيدًا عن الصوت. بدونه يسمع بدقة وأسرع.
     segments, info = model.transcribe(
         load_wav16k(wav_path), language='ar', word_timestamps=True, vad_filter=True, beam_size=5,
-        initial_prompt=prompt[:400] or None, condition_on_previous_text=False)
+        condition_on_previous_text=False)
     out = []
     for seg in segments:
         for w in seg.words or []:
