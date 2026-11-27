@@ -27,6 +27,9 @@ class _WorkEditorState extends State<WorkEditor> {
   final narrator = TextEditingController(text: 'صوت أثير');
   final minutes = TextEditingController(text: '0');
   late String worldId = widget.worlds.first['id'] as String;
+
+  /// أقسام إضافية تظهر فيها القصة (غير القسم الأساسي).
+  Set<String> extraWorlds = {};
   String cover = '';
   String scene = '';
   Map<String, Map<String, dynamic>> jobs = {};
@@ -85,6 +88,11 @@ class _WorkEditorState extends State<WorkEditor> {
     if (id == null) return setState(() => loading = false);
     final w = await db.from('works').select().eq('id', id!).single();
     final c = await db.from('chapters').select().eq('work_id', id!).order('sort_order');
+    var extra = <String>{};
+    try {
+      final ww = await db.from('work_worlds').select('world_id').eq('work_id', id!);
+      extra = {for (final r in ww) r['world_id'] as String};
+    } catch (_) {} // قبل تشغيل 0006_worlds.sql
     if (!mounted) return;
     setState(() {
       title.text = w['title'] ?? '';
@@ -93,6 +101,7 @@ class _WorkEditorState extends State<WorkEditor> {
       narrator.text = w['narrator'] ?? '';
       minutes.text = '${w['minutes'] ?? 0}';
       worldId = w['world_id'] as String;
+      extraWorlds = extra..remove(worldId);
       cover = w['cover'] ?? '';
       premium = w['is_premium'] == true;
       download = w['allow_download'] == true;
@@ -117,6 +126,20 @@ class _WorkEditorState extends State<WorkEditor> {
       if (mounted) toast(context, 'تعذّر رفع الغلاف: $e');
     }
     if (mounted) setState(() => busy = false);
+  }
+
+  Future<void> _saveExtraWorlds() async {
+    final extra = extraWorlds.where((w) => w != worldId).toList();
+    try {
+      await db.from('work_worlds').delete().eq('work_id', id!);
+      if (extra.isNotEmpty) {
+        await db.from('work_worlds').insert([
+          for (final w in extra) {'work_id': id, 'world_id': w}
+        ]);
+      }
+    } catch (e) {
+      if (extra.isNotEmpty && mounted) toast(context, 'الأقسام الإضافية محتاجة تشغيل 0006_worlds.sql في Supabase');
+    }
   }
 
   Future<bool> _save({bool quiet = false}) async {
@@ -148,6 +171,7 @@ class _WorkEditorState extends State<WorkEditor> {
       } else {
         await db.from('works').update(row).eq('id', id!);
       }
+      await _saveExtraWorlds();
       if (mounted && !quiet) toast(context, 'تم الحفظ');
       return true;
     } catch (e) {
@@ -256,6 +280,23 @@ class _WorkEditorState extends State<WorkEditor> {
                           items: [for (final w in widget.worlds) DropdownMenuItem(value: w['id'] as String, child: Text(w['name'] as String))],
                           onChanged: (v) => setState(() => worldId = v ?? worldId),
                         ),
+                        if (widget.worlds.length > 1) ...[
+                          const SizedBox(height: 10),
+                          Align(
+                            alignment: AlignmentDirectional.centerStart,
+                            child: Text('تظهر أيضًا في (اختياري):', style: Theme.of(context).textTheme.bodySmall),
+                          ),
+                          const SizedBox(height: 6),
+                          Wrap(spacing: 6, runSpacing: 6, children: [
+                            for (final w in widget.worlds)
+                              if (w['id'] != worldId)
+                                FilterChip(
+                                  label: Text(w['name'] as String),
+                                  selected: extraWorlds.contains(w['id']),
+                                  onSelected: (on) => setState(() => on ? extraWorlds.add(w['id'] as String) : extraWorlds.remove(w['id'])),
+                                ),
+                          ]),
+                        ],
                         const SizedBox(height: 10),
                         TextField(controller: description, maxLines: 3, decoration: const InputDecoration(labelText: 'وصف قصير')),
                         const SizedBox(height: 10),

@@ -28,7 +28,7 @@ class _AdminHomeState extends State<AdminHome> {
 
   static const _dest = [
     (icon: Icons.auto_stories_outlined, active: Icons.auto_stories_rounded, label: 'القصص'),
-    (icon: Icons.grid_view_outlined, active: Icons.grid_view_rounded, label: 'الأقسام'),
+    (icon: Icons.grid_view_outlined, active: Icons.grid_view_rounded, label: 'العوالم'),
     (icon: Icons.people_outline_rounded, active: Icons.people_rounded, label: 'المستمعون'),
     (icon: Icons.tune_outlined, active: Icons.tune_rounded, label: 'الإعدادات'),
   ];
