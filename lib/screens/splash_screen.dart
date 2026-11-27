@@ -55,13 +55,13 @@ class _CinematicSplashState extends State<CinematicSplash> with SingleTickerProv
 
   late List<int> _cues = _autoCues(_defaultPhraseMs);
 
-  // المقدمة الكاملة بالصوت تظهر أول مرة فقط، وبعدها نسخة قصيرة (~3 ثوانٍ) بدون الصوت.
-  int _leadInMs = 700; // ظهور الخلفية قبل أول كلمة
-  int _wordFadeMs = 650;
-  int _brandGapMs = 450; // بعد نهاية الجملة
-  int _brandFlickerMs = 1100;
-  int _devGapMs = 700;
-  int _holdMs = 1200;
+  // المقدمة الكاملة بالصوت تظهر مع كل فتح للتطبيق (طلب المستخدم).
+  static const _leadInMs = 700; // ظهور الخلفية قبل أول كلمة
+  static const _wordFadeMs = 650;
+  static const _brandGapMs = 450; // بعد نهاية الجملة
+  static const _brandFlickerMs = 1100;
+  static const _devGapMs = 700;
+  static const _holdMs = 1200;
 
   @override
   void initState() {
@@ -76,25 +76,12 @@ class _CinematicSplashState extends State<CinematicSplash> with SingleTickerProv
 
   Future<void> _start() async {
     var sound = true;
-    var full = true;
     try {
       final prefs = await SharedPreferences.getInstance();
       sound = prefs.getBool('introSound') ?? true;
-      full = !(prefs.getBool('introFullSeen') ?? false);
-      if (full) await prefs.setBool('introFullSeen', true);
     } catch (_) {}
 
-    if (!full) {
-      _leadInMs = 300;
-      _wordFadeMs = 450;
-      _phraseMs = 900;
-      _brandGapMs = 150;
-      _brandFlickerMs = 650;
-      _devGapMs = 350;
-      _holdMs = 650;
-    }
-
-    if (sound && full) {
+    if (sound) {
       for (final path in const ['assets/sounds/intro_voice.m4a', 'assets/sounds/intro_voice.mp3']) {
         try {
           final a = AudioPlayer();
@@ -106,7 +93,7 @@ class _CinematicSplashState extends State<CinematicSplash> with SingleTickerProv
       }
     }
     if (sound && _voice == null) {
-      // المقدمة القصيرة (أو لو التسجيل مش موجود): النغمة القديمة كخلفية.
+      // لو التسجيل مش موجود: النغمة القديمة كخلفية.
       try {
         final t = AudioPlayer();
         await t.setAsset('assets/sounds/intro.m4a');
@@ -120,7 +107,7 @@ class _CinematicSplashState extends State<CinematicSplash> with SingleTickerProv
     _ticker.start();
     _tone?.play();
     if (_voice != null) {
-      Future.delayed(Duration(milliseconds: _leadInMs), () {
+      Future.delayed(const Duration(milliseconds: _leadInMs), () {
         if (!mounted || _done) return;
         _voice!.play();
       });
@@ -209,6 +196,7 @@ class _CinematicSplashState extends State<CinematicSplash> with SingleTickerProv
     final now = _started ? _nowMs : 0;
     final words = [..._line1, ..._line2];
     final bg = _seg(now, 0, _leadInMs + 300);
+    final logo = _seg(now, 100, 900, Curves.easeOutBack).clamp(0.0, 1.0);
     final brand = _neon(now, _brandStart);
     final brandIn = _seg(now, _brandStart, 500);
     final dev = _neon(now, _devStart);
@@ -284,6 +272,26 @@ class _CinematicSplashState extends State<CinematicSplash> with SingleTickerProv
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
                     child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      // اللوجو: يظهر مع الخلفية بتوهج ذهبي، ويصغر قليلًا لما يولع النيون
+                      Opacity(
+                        opacity: logo,
+                        child: Transform.scale(
+                          scale: (0.86 + 0.14 * logo) * (1 - 0.18 * settle),
+                          child: Container(
+                            width: 132,
+                            height: 132,
+                            decoration: BoxDecoration(borderRadius: BorderRadius.circular(32), boxShadow: [
+                              BoxShadow(color: MidadColors.saffron.op(0.35 * logo), blurRadius: 46, spreadRadius: 2),
+                              BoxShadow(color: _NeonText.pink.op(0.25 * brand), blurRadius: 60),
+                            ]),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(32),
+                              child: Image.asset('assets/brand/logo.png', fit: BoxFit.cover),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 30 - 12 * settle),
                       // الجملة: تصغر وتخفت قليلًا لما يظهر الاسم
                       Transform.translate(
                         offset: Offset(0, -18 * settle),
