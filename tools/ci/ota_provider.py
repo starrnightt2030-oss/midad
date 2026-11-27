@@ -31,4 +31,24 @@ def apply(android_dir: Path) -> None:
     manifest.write_text(s, encoding='utf-8')
     (main / 'res/xml').mkdir(parents=True, exist_ok=True)
     (main / 'res/xml/ota_filepaths.xml').write_text(PATHS, encoding='utf-8')
+    _desugaring(android_dir)
     print('ota_update provider added ✓')
+
+
+def _desugaring(android_dir: Path) -> None:
+    """ota_update تحتاج core library desugaring في تطبيق أندرويد."""
+    kts = android_dir / 'app/build.gradle.kts'
+    groovy = android_dir / 'app/build.gradle'
+    f = kts if kts.exists() else groovy
+    s = f.read_text(encoding='utf-8')
+    if 'oreLibraryDesugaring' in s:
+        return
+    if 'compileOptions {' not in s:
+        raise SystemExit(f'ota: unexpected {f.name} layout, cannot enable desugaring')
+    if f is kts:
+        s = s.replace('compileOptions {', 'compileOptions {\n        isCoreLibraryDesugaringEnabled = true', 1)
+        s += '\ndependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")\n}\n'
+    else:
+        s = s.replace('compileOptions {', 'compileOptions {\n        coreLibraryDesugaringEnabled true', 1)
+        s += "\ndependencies {\n    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'\n}\n"
+    f.write_text(s, encoding='utf-8')
