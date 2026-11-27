@@ -116,11 +116,18 @@ class MidadColors {
 /// يحفظ الثيم المختار ويبلّغ التطبيق عند تغييره.
 class ThemeController extends ChangeNotifier {
   static const _key = 'atheer_theme';
+  static const _migratedKey = 'atheer_theme_redesign_v1';
   AtheerPalette get palette => MidadColors.palette;
 
   Future<void> load() async {
     try {
       final p = await SharedPreferences.getInstance();
+      // ترحيل مرة واحدة: المستخدمون القدامى ينتقلون للهوية الجديدة «ليل أثير»
+      // حتى لو كانوا محفوظين على لون قديم، ويقدرون يغيّروه بعدها من رحلتي.
+      if (p.getBool(_migratedKey) != true) {
+        await p.setString(_key, AtheerPalettes.atheer.id);
+        await p.setBool(_migratedKey, true);
+      }
       MidadColors.use(AtheerPalettes.byId(p.getString(_key)));
       notifyListeners();
     } catch (_) {}
