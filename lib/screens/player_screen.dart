@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../ambient/ambient_scene_engine.dart';
 import '../ambient/ambient_style.dart';
@@ -50,9 +51,19 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _arm();
   }
 
+  /// الشاشة تفضل منورة طول ما شاشة التشغيل مفتوحة والصوت شغال (علشان الكلام يفضل ظاهر).
+  /// لو المستخدم قفل الشاشة بنفسه الصوت يكمّل عادي في الخلفية.
+  bool? _awake;
+  void _keepAwake(bool on) {
+    if (_awake == on) return;
+    _awake = on;
+    WakelockPlus.toggle(enable: on).catchError((_) {});
+  }
+
   @override
   void dispose() {
     _hide?.cancel();
+    if (_awake == true) WakelockPlus.disable().catchError((_) {});
     if (_cinematic) SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
@@ -93,6 +104,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   @override
   Widget build(BuildContext context) {
     final p = context.watch<PlayerController>();
+    _keepAwake(p.playing);
     final w = p.work;
     if (w == null) return const Scaffold();
     final sel = context.watch<AmbientSceneSelector>();
@@ -540,14 +552,20 @@ class _CinematicLayer extends StatelessWidget {
         child: Align(
           alignment: Alignment.bottomCenter,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(28, 0, 28, 36),
+            padding: const EdgeInsets.fromLTRB(18, 0, 18, 36),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               if (hasLine)
-                SpokenPhrase(
-                  fade: const Duration(milliseconds: 700),
-                  highlight: AmbientColors.warmGold,
-                  style: MidadText.book(size: 21, color: AmbientColors.softIvory, height: 1.8)
-                      .copyWith(shadows: const [Shadow(color: Colors.black87, blurRadius: 12)]),
+                // تظليل خفيف شفاف خلف الكلام (نفس لوحة المشغّل) وخط أكبر للقراءة المريحة.
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                  decoration: AmbientColors.panel(radius: 20, opacity: 0.35),
+                  child: SpokenPhrase(
+                    fade: const Duration(milliseconds: 500),
+                    highlight: AmbientColors.warmGold,
+                    style: MidadText.book(size: 24, color: AmbientColors.softIvory, height: 1.75)
+                        .copyWith(shadows: const [Shadow(color: Colors.black54, blurRadius: 8)]),
+                  ),
                 ),
               const SizedBox(height: 10),
               Text(title, style: MidadText.ui(size: 11, color: AmbientColors.warmGold.withValues(alpha: 0.8))),
