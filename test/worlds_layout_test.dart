@@ -25,17 +25,22 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// القصص هنا بيانات اختبار فقط.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  MidadText.useGoogleFonts = false;
   final out = Platform.environment['WORLD_FRAMES'];
   final fonts = Platform.environment['FONTS_DIR'];
+  // بدون ملفات الخطوط نستخدم خط الاختبار الافتراضي.
+  MidadText.useGoogleFonts = fonts != null;
 
   setUpAll(() async {
     if (fonts == null) return;
-    final loader = FontLoader('Roboto');
+    // كل عائلة باسمها كما في pubspec (مثلًا Alexandria-700.ttf → Alexandria).
+    final families = <String, FontLoader>{};
     for (final f in Directory(fonts).listSync().whereType<File>().where((f) => f.path.endsWith('.ttf'))) {
-      loader.addFont(Future.value(ByteData.sublistView(f.readAsBytesSync())));
+      final fam = f.uri.pathSegments.last.split('-').first;
+      families.putIfAbsent(fam, () => FontLoader(fam)).addFont(Future.value(ByteData.sublistView(f.readAsBytesSync())));
     }
-    await loader.load();
+    for (final l in families.values) {
+      await l.load();
+    }
     final icons = File('${Platform.environment['FLUTTER_ROOT'] ?? ''}/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf');
     if (icons.existsSync()) {
       await (FontLoader('MaterialIcons')..addFont(Future.value(ByteData.sublistView(icons.readAsBytesSync())))).load();
