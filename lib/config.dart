@@ -15,7 +15,6 @@ class AppConfig {
 
   static const String developer = 'Mohamedd-Eldawly';
   static const String githubRepo = 'starrnightt2030-oss/midad';
-  static const String developerGithub = 'https://github.com/starrnightt2030-oss';
 
   /// Supabase: المصدر الأساسي للمحتوى. المفتاح هنا هو المفتاح العام (publishable)
   /// المخصص للتطبيقات، والحماية الفعلية في قواعد قاعدة البيانات (RLS).
