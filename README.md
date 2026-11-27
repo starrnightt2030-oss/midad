@@ -98,6 +98,12 @@
 
 خطوات النشر على Google Play في [docs/launch.md](docs/launch.md).
 
+## «عوالم أثير» (الأقسام)
+16 قسم ثابت المعرّف، لكل قسم صورة ووصف وألوان. من الإدارة تقدر تضيف وتعدّل وترتّب وتخفي وتعطّل الأقسام، وتربط القصة بأكتر من قسم.
+
+التجهيز (مرة واحدة):
+1. في Supabase ← SQL Editor: شغّل `supabase/migrations/0006_worlds.sql`. مش بيمسح ولا بيغيّر أي قصة موجودة.
+
 ## الإعداد لأول مرة (مرة واحدة)
 في المستودع: **Settings ← Secrets and variables ← Actions ← New repository secret**
 - `GEMINI_API_KEY` — لتوليد الصوت بالذكاء الاصطناعي فقط (اختياري، من aistudio.google.com).
