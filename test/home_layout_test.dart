@@ -5,6 +5,7 @@ import 'package:atheer/ambient/ambient_scene_engine.dart';
 import 'package:atheer/data/repository.dart';
 import 'package:atheer/models.dart';
 import 'package:atheer/screens/home_shell.dart';
+import 'package:atheer/screens/work_screen.dart';
 import 'package:atheer/state/account.dart';
 import 'package:atheer/state/downloads.dart';
 import 'package:atheer/state/library.dart';
@@ -87,14 +88,15 @@ void main() {
     File('$out/$name.png').writeAsBytesSync(png!.buffer.asUint8List());
   }
 
-  Future<void> render(WidgetTester tester, {required Size size, required AtheerPalette palette, Catalog? catalog, List<String> recent = const [], List<String> favs = const [], String? name}) async {
+  Future<void> render(WidgetTester tester, {required Size size, required AtheerPalette palette, Catalog? catalog, List<String> recent = const [], List<String> favs = const [], String? name, Widget Function(Catalog)? screen}) async {
     SharedPreferences.setMockInitialValues({});
     MidadColors.use(palette);
     tester.view.physicalSize = size * 2;
     tester.view.devicePixelRatio = 2;
     addTearDown(tester.view.reset);
 
-    final repo = ContentRepository()..catalog = catalog ?? full();
+    final cat = catalog ?? full();
+    final repo = ContentRepository()..catalog = cat;
     final lib = LibraryStore();
     for (final id in recent.reversed) {
       lib.recent.insert(0, id);
@@ -124,7 +126,7 @@ void main() {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          home: const HomeShell(),
+          home: screen == null ? const HomeShell() : screen(cat),
         ),
       ),
     ));
@@ -160,5 +162,19 @@ void main() {
     await render(tester, size: size, palette: AtheerPalettes.forest, name: 'forest');
     await render(tester, size: size, palette: AtheerPalettes.desert, name: 'desert');
     await render(tester, size: size, palette: AtheerPalettes.violet, catalog: Catalog(version: '0', worlds: const [], works: const [], ambience: const []), name: 'empty');
+  });
+
+  for (final size in const [Size(320, 568), Size(412, 915)]) {
+    testWidgets('work screen builds at ${size.width.toInt()}x${size.height.toInt()}', (tester) async {
+      await render(tester, size: size, palette: AtheerPalettes.atheer, recent: ['w1'], screen: (c) => WorkScreen(work: c.workById('w1')!));
+      await render(tester, size: size, palette: AtheerPalettes.atheer, screen: (c) => WorkScreen(work: c.workById('w6')!));
+    });
+  }
+
+  testWidgets('work screenshots', (tester) async {
+    if (out == null) return;
+    debugDisableShadows = false;
+    addTearDown(() => debugDisableShadows = true);
+    await render(tester, size: const Size(390, 1700), palette: AtheerPalettes.atheer, recent: ['w1'], name: 'work', screen: (c) => WorkScreen(work: c.workById('w1')!));
   });
 }
