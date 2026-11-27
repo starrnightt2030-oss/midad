@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 
+import '../design/atheer_design_system.dart';
 import '../data/repository.dart';
 import '../models.dart';
 import '../state/library.dart';
@@ -78,7 +79,7 @@ class _WorldScreenState extends State<WorldScreen> {
       return Scaffold(
         backgroundColor: MidadColors.ink,
         appBar: AppBar(backgroundColor: Colors.transparent),
-        body: Center(child: Text('القسم غير متاح حاليًا', style: MidadText.ui(color: Colors.white60))),
+        body: Center(child: Text('القسم غير متاح حاليًا', style: AtheerType.bodyMedium())),
       );
     }
     final all = cat.worksOf(world.id);
@@ -111,7 +112,8 @@ class _WorldScreenState extends State<WorldScreen> {
                   padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     if (world.description.isNotEmpty)
-                      Text(world.description, style: MidadText.book(size: 17, color: Colors.white.op(0.86), height: 1.8)),
+                      Text(world.description,
+                          style: AtheerType.quoteMedium(color: AtheerColors.softIvory.op(0.86)).copyWith(fontSize: 17, height: 1.8)),
                     const SizedBox(height: 14),
                     Wrap(spacing: 8, runSpacing: 8, children: [
                       _Stat(icon: Icons.graphic_eq_rounded, text: all.isEmpty ? 'قريبًا' : clipsLabel(all.length), color: world.color),
@@ -138,7 +140,7 @@ class _WorldScreenState extends State<WorldScreen> {
                     padding: const EdgeInsets.fromLTRB(20, 22, 12, 10),
                     child: Row(children: [
                       Expanded(
-                        child: Text(filtering ? 'النتائج (${arNum(shown.length)})' : 'كل المقاطع', style: MidadText.title(size: 19)),
+                        child: Text(filtering ? 'النتائج (${arNum(shown.length)})' : 'كل المقاطع', style: AtheerType.h2()),
                       ),
                       _SortMenu(value: sort, color: world.color, onChanged: (s) => setState(() => sort = s)),
                       IconButton(
@@ -157,7 +159,7 @@ class _WorldScreenState extends State<WorldScreen> {
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.all(40),
-                      child: Center(child: Text('لا توجد نتائج', style: MidadText.ui(color: Colors.white60))),
+                      child: Center(child: Text('لا توجد نتائج', style: AtheerType.bodyMedium())),
                     ),
                   )
                 else if (_listView)
@@ -207,38 +209,17 @@ class _WorldScreenState extends State<WorldScreen> {
       child: Column(children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(18),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white.op(0.08),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: world.color.op(0.22)),
-                ),
-                child: TextField(
-                  controller: _query,
-                  onChanged: (_) => setState(() {}),
-                  style: MidadText.ui(size: 15),
-                  cursorColor: world.color,
-                  decoration: InputDecoration(
-                    hintText: 'ابحث في ${world.name}',
-                    hintStyle: MidadText.ui(size: 14, color: Colors.white54),
-                    border: InputBorder.none,
-                    prefixIcon: Icon(Icons.search_rounded, color: world.color),
-                    suffixIcon: _query.text.isEmpty
-                        ? null
-                        : IconButton(
-                            tooltip: 'مسح',
-                            icon: const Icon(Icons.close_rounded, color: Colors.white70),
-                            onPressed: () => setState(_query.clear),
-                          ),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 14),
+          child: AtheerSearchBar(
+            controller: _query,
+            hint: 'ابحث في ${world.name}',
+            onChanged: (_) => setState(() {}),
+            trailing: _query.text.isEmpty
+                ? null
+                : IconButton(
+                    tooltip: 'مسح',
+                    icon: Icon(Icons.close_rounded, color: AtheerColors.textSecondary),
+                    onPressed: () => setState(_query.clear),
                   ),
-                ),
-              ),
-            ),
           ),
         ),
         SizedBox(
@@ -291,7 +272,7 @@ class _Cover extends StatelessWidget {
           FlexibleSpaceBar(
             stretchModes: const [StretchMode.zoomBackground],
             background: Stack(fit: StackFit.expand, children: [
-              Hero(tag: 'world-art-${world.id}', child: WorldArt(world: world)),
+              Hero(tag: 'world-${world.id}', child: WorldArt(world: world)),
               DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -322,7 +303,8 @@ class _Cover extends StatelessWidget {
                 Text(world.name,
                     style: MidadText.callig(size: 40).copyWith(shadows: [Shadow(color: Colors.black.op(0.55), blurRadius: 18)])),
                 if (world.tagline.isNotEmpty)
-                  Text('«${world.tagline}»', style: MidadText.book(size: 18, color: Colors.white.op(0.9), height: 1.6)),
+                  Text('«${world.tagline}»',
+                      style: AtheerType.quoteMedium(color: AtheerColors.softIvory.op(0.9)).copyWith(fontSize: 18, height: 1.6)),
               ]).animate().fadeIn(duration: 600.ms, delay: 250.ms).moveY(begin: 14, end: 0, curve: Curves.easeOutCubic),
             ),
           ),
@@ -336,7 +318,7 @@ class _Cover extends StatelessWidget {
               child: AnimatedOpacity(
                 opacity: collapsed ? 1 : 0,
                 duration: const Duration(milliseconds: 200),
-                child: Center(child: Text(world.name, style: MidadText.title(size: 18))),
+                child: Center(child: Text(world.name, style: AtheerType.h3())),
               ),
             ),
           ),
@@ -364,7 +346,7 @@ class _Stat extends StatelessWidget {
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         Icon(icon, size: 15, color: color),
         const SizedBox(width: 6),
-        Text(text, style: MidadText.ui(size: 12.5, weight: FontWeight.w600)),
+        Text(text, style: AtheerType.label().copyWith(fontSize: 12.5)),
       ]),
     );
   }
@@ -382,22 +364,23 @@ class _Chip extends StatelessWidget {
     return Semantics(
       button: true,
       selected: selected,
-      child: GestureDetector(
+      child: AtheerPressable(
         onTap: onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
+          duration: AtheerMotion.normal,
           padding: const EdgeInsets.symmetric(horizontal: 16),
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: selected ? color.op(0.9) : Colors.white.op(0.06),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: selected ? color : Colors.white.op(0.12)),
+            borderRadius: BorderRadius.circular(AtheerRadius.pill),
+            border: Border.all(color: selected ? color : AtheerColors.hairline),
           ),
           child: Text(label,
-              style: MidadText.ui(
-                  size: 13,
-                  weight: selected ? FontWeight.w700 : FontWeight.w500,
-                  color: selected ? (color.computeLuminance() > 0.45 ? Colors.black : Colors.white) : Colors.white70)),
+              style: AtheerType.label(
+                color: selected
+                    ? (color.computeLuminance() > 0.45 ? AtheerColors.midnight : AtheerColors.softIvory)
+                    : AtheerColors.textSecondary,
+              ).copyWith(fontWeight: selected ? FontWeight.w700 : FontWeight.w500)),
         ),
       ),
     );
@@ -416,11 +399,11 @@ class _SortMenu extends StatelessWidget {
     return PopupMenuButton<_Sort>(
       tooltip: 'الترتيب',
       initialValue: value,
-      color: MidadColors.surfaceHigh,
+      color: AtheerColors.surfaceHigh,
       onSelected: onChanged,
-      icon: Icon(Icons.sort_rounded, color: value == _Sort.order ? Colors.white70 : color),
+      icon: Icon(Icons.sort_rounded, color: value == _Sort.order ? AtheerColors.textSecondary : color),
       itemBuilder: (_) => [
-        for (final s in _Sort.values) PopupMenuItem(value: s, child: Text(labels[s]!, style: MidadText.ui())),
+        for (final s in _Sort.values) PopupMenuItem(value: s, child: Text(labels[s]!, style: AtheerType.label())),
       ],
     );
   }
@@ -438,7 +421,7 @@ class _RailHeader extends StatelessWidget {
       child: Row(children: [
         Container(width: 3, height: 18, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
         const SizedBox(width: 10),
-        Text(title, style: MidadText.title(size: 19)),
+        Expanded(child: Semantics(header: true, child: Text(title, style: AtheerType.h2()))),
       ]),
     );
   }
@@ -469,7 +452,8 @@ class _Rail extends StatelessWidget {
               bottom: 44,
               start: 10,
               child: Text(arNum(i + 1),
-                  style: MidadText.title(size: 34, color: Colors.white).copyWith(
+                  style: AtheerType.hero().copyWith(
+                    fontSize: 34,
                     shadows: [Shadow(color: (color ?? Colors.black).op(0.9), blurRadius: 14)],
                   )),
             ),
@@ -510,7 +494,9 @@ class _WorkRow extends StatelessWidget {
               Row(children: [
                 Flexible(
                   child: Text(work.title,
-                      maxLines: 1, overflow: TextOverflow.ellipsis, style: MidadText.ui(size: 15, weight: FontWeight.w700)),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AtheerType.label().copyWith(fontSize: 15, fontWeight: FontWeight.w700)),
                 ),
                 if (work.premium) ...[
                   const SizedBox(width: 6),
@@ -519,7 +505,7 @@ class _WorkRow extends StatelessWidget {
               ]),
               if (meta.isNotEmpty) ...[
                 const SizedBox(height: 4),
-                Text(meta, maxLines: 1, overflow: TextOverflow.ellipsis, style: MidadText.ui(size: 12, color: Colors.white60)),
+                Text(meta, maxLines: 1, overflow: TextOverflow.ellipsis, style: AtheerType.bodySmall()),
               ],
             ]),
           ),
@@ -550,19 +536,9 @@ class _Soon extends StatelessWidget {
   const _Soon({required this.world});
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(32, 40, 32, 60),
-      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(Icons.auto_stories_outlined, size: 44, color: world.color)
-            .animate(onPlay: (c) => c.repeat(reverse: true))
-            .fade(begin: 0.5, end: 1, duration: 1800.ms),
-        const SizedBox(height: 16),
-        Text('قريبًا', style: MidadText.title(size: 22)),
-        const SizedBox(height: 8),
-        Text('حكايات هذا العالم في الطريق إليك',
-            textAlign: TextAlign.center, style: MidadText.book(size: 16, color: Colors.white70, height: 1.7)),
-      ]),
-    );
-  }
+  Widget build(BuildContext context) => const AtheerEmptyState(
+        icon: Icons.auto_stories_outlined,
+        title: 'قريبًا',
+        message: 'حكايات هذا العالم في الطريق إليك',
+      );
 }

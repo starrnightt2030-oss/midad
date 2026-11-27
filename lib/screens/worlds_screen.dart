@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:provider/provider.dart';
 
+import '../design/atheer_design_system.dart';
 import '../data/repository.dart';
 import '../models.dart';
 import '../theme.dart';
@@ -15,7 +16,7 @@ import 'world_screen.dart';
 class WorldsScreen extends StatelessWidget {
   const WorldsScreen({super.key});
 
-  static const _gutter = 18.0;
+  static const _gutter = AtheerSpacing.gutter;
 
   /// نمط الشبكة (٤ أعمدة): بطاقة عريضة، ثم طويلة بجانب مربعة ونحيفة، ثم مربعتان.
   /// النمط يتكرر معكوسًا، فلا يتشابه صفّان متتاليان.
@@ -43,7 +44,7 @@ class WorldsScreen extends StatelessWidget {
         if (worlds.isEmpty)
           SliverFillRemaining(
             hasScrollBody: false,
-            child: Center(child: Text('العوالم في الطريق...', style: MidadText.ui(color: Colors.white60))),
+            child: Center(child: Text('العوالم في الطريق...', style: AtheerType.bodyMedium())),
           )
         else
           SliverPadding(
@@ -105,7 +106,8 @@ class _Header extends StatelessWidget {
                   .fadeIn(duration: 600.ms)
                   .moveY(begin: 10, end: 0, duration: 700.ms, curve: Curves.easeOutCubic),
               const SizedBox(height: 2),
-              Text('لكل شعور حكاية... ولكل حكاية أثر', style: MidadText.book(size: 17, color: Colors.white70, height: 1.6))
+              Text('لكل شعور حكاية... ولكل حكاية أثر',
+                      style: AtheerType.quoteMedium(color: AtheerColors.textSecondary).copyWith(fontSize: 17, height: 1.6))
                   .animate(delay: 150.ms)
                   .fadeIn(duration: 700.ms),
             ]),
@@ -118,7 +120,9 @@ class _Header extends StatelessWidget {
           width: 72,
           decoration: BoxDecoration(
             gradient: LinearGradient(
-                begin: AlignmentDirectional.centerStart, end: AlignmentDirectional.centerEnd, colors: [p.accent, p.accent.op(0)]),
+                begin: AlignmentDirectional.centerStart,
+                end: AlignmentDirectional.centerEnd,
+                colors: [AtheerColors.champagneGold, AtheerColors.champagneGold.op(0)]),
           ),
         )
             .animate(delay: 300.ms)
@@ -142,8 +146,6 @@ class _WorldCard extends StatefulWidget {
 }
 
 class _WorldCardState extends State<_WorldCard> {
-  bool pressed = false;
-
   /// شكل البطاقة من مقاسها الفعلي في الشبكة.
   @override
   Widget build(BuildContext context) => LayoutBuilder(builder: (context, box) {
@@ -156,113 +158,107 @@ class _WorldCardState extends State<_WorldCard> {
     final w = widget.world;
     final slim = shape == _Shape.slim;
     final big = shape == _Shape.wide || shape == _Shape.tall;
-    final radius = BorderRadius.circular(slim ? 18 : 24);
+    final radius = BorderRadius.circular(slim ? AtheerRadius.md : AtheerRadius.lg);
 
     return Semantics(
       button: true,
       label: '${w.name}. ${w.tagline}',
-      child: GestureDetector(
-        onTapDown: (_) => setState(() => pressed = true),
-        onTapCancel: () => setState(() => pressed = false),
-        onTapUp: (_) => setState(() => pressed = false),
+      child: AtheerPressable(
         onTap: () => Navigator.of(context).push(fadeRoute(WorldScreen(worldId: w.id))),
-        child: AnimatedScale(
-          scale: pressed ? 0.97 : 1,
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeOut,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: radius,
-              boxShadow: [
-                BoxShadow(color: w.color2.op(0.45), blurRadius: 22, offset: const Offset(0, 10)),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: radius,
-              child: Stack(fit: StackFit.expand, children: [
-                Hero(tag: 'world-art-${w.id}', child: WorldArt(world: w, decodeWidth: big ? 900 : 520)),
-                // تدرّج يضمن وضوح النص، بلون هوية القسم.
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: slim
-                        ? LinearGradient(
-                            begin: AlignmentDirectional.centerStart,
-                            end: AlignmentDirectional.centerEnd,
-                            colors: [Colors.black.op(0.78), w.color2.op(0.35), Colors.transparent],
-                            stops: const [0, 0.6, 1],
-                          )
-                        : LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [Colors.black.op(0.10), Colors.transparent, w.color2.op(0.55), Colors.black.op(0.88)],
-                            stops: const [0, 0.32, 0.68, 1],
-                          ),
-                  ),
-                ),
-                // إطار رفيع بلون القسم.
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    borderRadius: radius,
-                    border: Border.all(color: w.color.op(0.28)),
-                  ),
-                ),
-                if (!slim)
-                  PositionedDirectional(
-                    top: 12,
-                    start: 14,
-                    child: Text(
-                      arNum(widget.index),
-                      style: MidadText.ui(size: 12, weight: FontWeight.w700, color: Colors.white.op(0.85)).copyWith(letterSpacing: 2),
-                    ),
-                  ),
-                if (!slim) PositionedDirectional(top: 10, end: 10, child: _Badge(world: w, count: widget.count)),
-                LayoutBuilder(builder: (context, box) {
-                  // على الشاشات الصغيرة جدًا نخفف النص بدل ما يزيد عن البطاقة.
-                  final roomy = box.maxHeight >= (big ? 170 : 130);
-                  final pad = slim ? 14.0 : (box.maxHeight < 120 ? 12.0 : 16.0);
-                  return Padding(
-                    padding: EdgeInsets.all(pad),
-                    child: Align(
-                      alignment: slim ? AlignmentDirectional.centerStart : AlignmentDirectional.bottomStart,
-                      child: Padding(
-                        // في البطاقة النحيفة نسيب مكان للشارة.
-                        padding: EdgeInsetsDirectional.only(end: slim ? 8 : 0),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              w.name,
-                              maxLines: slim || !roomy ? 1 : 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: MidadText.title(size: big ? 24 : (slim ? 16 : 18), height: 1.25)
-                                  .copyWith(shadows: [Shadow(color: Colors.black.op(0.6), blurRadius: 12)]),
-                            ),
-                            if (slim)
-                              Text(widget.count == 0 ? 'قريبًا' : clipsLabel(widget.count),
-                                  style: MidadText.ui(size: 11, weight: FontWeight.w600, color: w.color.op(0.95), height: 1.3)),
-                            if (!slim && roomy && w.tagline.isNotEmpty) ...[
-                              const SizedBox(height: 4),
-                              Text(
-                                w.tagline,
-                                maxLines: big ? 2 : 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: MidadText.book(size: big ? 15 : 13, color: Colors.white.op(0.82), height: 1.5),
-                              ),
-                            ],
-                            if (!slim) ...[
-                              const SizedBox(height: 8),
-                              Container(
-                                  height: 2, width: 28, decoration: BoxDecoration(color: w.color, borderRadius: BorderRadius.circular(2))),
-                            ],
-                          ],
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: radius,
+            boxShadow: [
+              BoxShadow(color: w.color2.op(0.45), blurRadius: 22, offset: const Offset(0, 10)),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: radius,
+            child: Stack(fit: StackFit.expand, children: [
+              Hero(tag: 'world-${w.id}', child: WorldArt(world: w, decodeWidth: big ? 900 : 520)),
+              // تدرّج يضمن وضوح النص، بلون هوية القسم.
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: slim
+                      ? LinearGradient(
+                          begin: AlignmentDirectional.centerStart,
+                          end: AlignmentDirectional.centerEnd,
+                          colors: [Colors.black.op(0.78), w.color2.op(0.35), Colors.transparent],
+                          stops: const [0, 0.6, 1],
+                        )
+                      : LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Colors.black.op(0.10), Colors.transparent, w.color2.op(0.55), Colors.black.op(0.88)],
+                          stops: const [0, 0.32, 0.68, 1],
                         ),
+                ),
+              ),
+              // إطار رفيع بلون القسم.
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: radius,
+                  border: Border.all(color: w.color.op(0.28)),
+                ),
+              ),
+              if (!slim)
+                PositionedDirectional(
+                  top: 12,
+                  start: 14,
+                  child: Text(
+                    arNum(widget.index),
+                    style: AtheerType.overline(color: AtheerColors.softIvory.op(0.85)).copyWith(letterSpacing: 2),
+                  ),
+                ),
+              if (!slim) PositionedDirectional(top: 10, end: 10, child: _Badge(world: w, count: widget.count)),
+              LayoutBuilder(builder: (context, box) {
+                // على الشاشات الصغيرة جدًا نخفف النص بدل ما يزيد عن البطاقة.
+                final roomy = box.maxHeight >= (big ? 140 : 120);
+                final pad = slim ? 14.0 : (box.maxHeight < 120 ? 12.0 : 16.0);
+                return Padding(
+                  padding: slim ? EdgeInsets.symmetric(horizontal: 14, vertical: box.maxHeight < 70 ? 6 : 14) : EdgeInsets.all(pad),
+                  child: Align(
+                    alignment: slim ? AlignmentDirectional.centerStart : AlignmentDirectional.bottomStart,
+                    child: Padding(
+                      // في البطاقة النحيفة نسيب مكان للشارة.
+                      padding: EdgeInsetsDirectional.only(end: slim ? 8 : 0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            w.name,
+                            maxLines: slim || !roomy ? 1 : 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: AtheerType.h1()
+                                .copyWith(fontSize: big ? 22 : (slim ? 15 : 16), height: 1.25)
+                                .copyWith(shadows: [Shadow(color: Colors.black.op(0.6), blurRadius: 12)]),
+                          ),
+                          if (slim)
+                            Text(widget.count == 0 ? 'قريبًا' : clipsLabel(widget.count),
+                                style: AtheerType.labelSmall(color: w.color.op(0.95))),
+                          if (!slim && roomy && w.tagline.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              w.tagline,
+                              maxLines: big ? 2 : 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AtheerType.quoteMedium(color: AtheerColors.softIvory.op(0.82))
+                                  .copyWith(fontSize: big ? 15 : 13, height: 1.5),
+                            ),
+                          ],
+                          if (!slim) ...[
+                            const SizedBox(height: 8),
+                            Container(
+                                height: 2, width: 28, decoration: BoxDecoration(color: w.color, borderRadius: BorderRadius.circular(2))),
+                          ],
+                        ],
                       ),
                     ),
-                  );
-                }),
-              ]),
-            ),
+                  ),
+                );
+              }),
+            ]),
           ),
         ),
       ),
@@ -288,7 +284,7 @@ class _Badge extends StatelessWidget {
       ),
       child: Text(
         soon ? 'قريبًا' : clipsLabel(count),
-        style: MidadText.ui(size: 10.5, weight: FontWeight.w700, color: soon ? world.color : Colors.white),
+        style: AtheerType.labelSmall(color: soon ? world.color : AtheerColors.textPrimary).copyWith(fontSize: 10.5),
       ),
     );
   }
