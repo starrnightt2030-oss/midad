@@ -1,6 +1,6 @@
 name: فحص التزامن
 
-# تشخيص فقط: يطبع توقيتات فصل وبيانات ملف صوته، بدون أي تعديل.
+# تشخيص فقط: يطبع توقيتات فصل وبيانات ملف صوته، ويعيد الضبط تجريبيًا للمقارنة، بدون حفظ أي شيء.
 on:
   workflow_dispatch:
     inputs:
@@ -8,9 +8,6 @@ on:
         description: 'عنوان القصة'
         required: true
         default: 'حكايتي'
-  push:
-    branches: ['claude/**']
-    paths: ['tools/inspect_sync.py', 'tools/aligner.py', '.github/workflows/inspect-sync.yml']
 
 permissions:
   contents: read
