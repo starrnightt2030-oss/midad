@@ -268,14 +268,16 @@ def process_align(job):
     if added:
         log(f'  تقسيم الفقرات الطويلة: +{added} سطر')
     report = progress_reporter(job)
-    prompt = ' '.join(ln['text'] for ln in script['lines'])
-    heard = aligner.transcribe(str(wav), prompt, lambda t, total: report(t, total, f'يسمع الصوت… {min(99, int(t * 100 / total))}%'))
+    heard = aligner.transcribe(str(wav), on_progress=lambda t, total: report(t, total, f'يسمع الصوت… {min(99, int(t * 100 / total))}%'))
     if not heard:
         raise RuntimeError('لم يُسمع كلام في ملف الصوت')
-    ratio = aligner.apply_to_script(script, heard)
-    log(f'  التطابق بين النص والصوت: {ratio:.0%}')
+    stats = {}
+    ratio = aligner.apply_to_script(script, heard, stats)
+    log(f'  التطابق بين النص والصوت: {ratio:.0%}، كلمات مضبوطة مباشرة: {stats["anchored"]:.0%}، أطول فجوة: {stats["max_gap"]:.0f} ث')
     if ratio < 0.25:
         raise RuntimeError(f'النص لا يطابق الصوت (التطابق {ratio:.0%} فقط). تأكد أنه نص نفس التسجيل')
+    if stats['anchored'] < 0.4:
+        raise RuntimeError(f'لم يُضبط إلا {stats["anchored"]:.0%} من الكلمات على الصوت. تأكد أن النص هو نفس كلام التسجيل')
 
     row = {'script': script, 'duration_seconds': round(dur, 2)}
     # ملفات wav كبيرة جدًا على المساحة المجانية: نضغطها إلى m4a ونستبدلها
