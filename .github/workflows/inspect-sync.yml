@@ -10,7 +10,7 @@ on:
         default: 'حكايتي'
   push:
     branches: ['claude/**']
-    paths: ['tools/inspect_sync.py', '.github/workflows/inspect-sync.yml']
+    paths: ['tools/inspect_sync.py', 'tools/asr_experiment.py', '.github/workflows/inspect-sync.yml']
 
 permissions:
   contents: read
@@ -31,6 +31,6 @@ jobs:
         with:
           path: ~/.cache/huggingface
           key: whisper-medium-v1
-      - run: python tools/inspect_sync.py "$TITLE" --whisper
+      - run: python tools/asr_experiment.py
         env:
           TITLE: ${{ github.event.inputs.title || 'حكايتي' }}
