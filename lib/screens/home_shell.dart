@@ -70,7 +70,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final pages = [
-      HomeScreen(onOpenWorld: _openWorld),
+      HomeScreen(onOpenWorld: _openWorld, onOpenWorlds: () => setState(() => tab = 1)),
       const WorldsScreen(),
       const LibraryScreen(),
       const MoreScreen(),

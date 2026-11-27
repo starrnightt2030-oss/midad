@@ -3,22 +3,57 @@ import 'package:provider/provider.dart';
 
 import '../config.dart';
 import '../data/repository.dart';
+import '../design/atheer_design_system.dart';
 import '../models.dart';
 import '../state/library.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/cover_art.dart';
-import '../widgets/story_card.dart';
+import '../widgets/world_art.dart';
 import 'actions.dart';
 import 'search.dart';
 import 'work_screen.dart';
 
-/// الرئيسية: ترويسة هادئة، حكاية مختارة لليوم، أكمل الاستماع، ثم رف لكل عالم.
+/// معرّفات الأقسام كما في قاعدة البيانات (عوالم أثير الـ16).
+class _W {
+  static const bedtime = 'bedtime_stories';
+  static const tranquility = 'tranquility';
+  static const hope = 'hope_after_hardship';
+  static const meaningful = 'meaningful_words';
+  static const lessons = 'life_lessons';
+  static const nostalgic = 'nostalgic_tales';
+  static const spiritual = 'spiritual_nourishment';
+  static const self = 'self_discovery';
+  static const hearts = 'between_hearts';
+  static const heartfelt = 'heartfelt_messages';
+  static const wisdom = 'wisdom_minutes';
+  static const turning = 'turning_point';
+}
+
+/// مزاج «كيف تشعر الآن؟» وما يناسبه من العوالم.
+class _Mood {
+  final String label;
+  final IconData icon;
+  final List<String> worlds;
+  const _Mood(this.label, this.icon, this.worlds);
+}
+
+const _moods = [
+  _Mood('أريد أن أهدأ', Icons.spa_rounded, [_W.tranquility, _W.spiritual]),
+  _Mood('أريد أن أنام', Icons.nightlight_round, [_W.bedtime, _W.tranquility]),
+  _Mood('أحتاج أملًا', Icons.wb_sunny_rounded, [_W.hope, _W.turning]),
+  _Mood('أبحث عن معنى', Icons.auto_awesome_rounded, [_W.meaningful, _W.wisdom, _W.lessons]),
+  _Mood('أشتاق للماضي', Icons.history_edu_rounded, [_W.nostalgic]),
+  _Mood('قلبي مثقل', Icons.favorite_rounded, [_W.heartfelt, _W.hearts]),
+  _Mood('أريد أن أفهم نفسي', Icons.self_improvement_rounded, [_W.self, _W.lessons]),
+];
+
+/// الرئيسية: واجهة تحريرية سينمائية تتغيّر مع اليوم، وتعرض البيانات الحقيقية فقط.
+/// أي قسم بلا محتوى لا يظهر.
 class HomeScreen extends StatelessWidget {
   final void Function(String worldId) onOpenWorld;
-  const HomeScreen({super.key, required this.onOpenWorld});
-
-  static const _gutter = 22.0;
+  final VoidCallback? onOpenWorlds;
+  const HomeScreen({super.key, required this.onOpenWorld, this.onOpenWorlds});
 
   static String greeting(DateTime now) {
     final h = now.hour;
@@ -28,13 +63,14 @@ class HomeScreen extends StatelessWidget {
     return 'ليلة هادئة';
   }
 
-  static bool isNight(DateTime now) => now.hour >= 17 || now.hour < 5;
+  static bool isNight(DateTime now) => now.hour >= 20 || now.hour < 5;
 
-  /// حكاية اليوم: تتغيّر مرة كل يوم، وثابتة طوال اليوم.
+  static int _dayIndex(DateTime now) => DateTime(now.year, now.month, now.day).difference(DateTime(2024)).inDays;
+
+  /// اختيار أثير اليوم: يتغيّر مرة كل يوم، وثابت طوال اليوم.
   static Work? pickOfTheDay(List<Work> works, DateTime now) {
     if (works.isEmpty) return null;
-    final day = DateTime(now.year, now.month, now.day).difference(DateTime(now.year)).inDays;
-    return works[day % works.length];
+    return works[_dayIndex(now) % works.length];
   }
 
   @override
@@ -42,48 +78,121 @@ class HomeScreen extends StatelessWidget {
     final cat = context.watch<ContentRepository>().catalog!;
     final lib = context.watch<LibraryStore>();
     final now = DateTime.now();
-    final recent = lib.recent.map(cat.workById).whereType<Work>().toList();
-    final featured = pickOfTheDay(cat.works, now);
     final night = isNight(now);
+    final works = cat.works;
+
+    final featured = pickOfTheDay(works, now);
+
+    final recent = lib.recent.map(cat.workById).whereType<Work>().toList();
+
+    // رسالة اليوم: وصف عمل من «دقائق من الحكمة» أو «كلمات لها معنى».
+    final wisdomPool = [...cat.worksOf(_W.wisdom), ...cat.worksOf(_W.meaningful)].where((w) => w.description.trim().isNotEmpty).toList();
+    final message = wisdomPool.isEmpty ? null : wisdomPool[_dayIndex(now) % wisdomPool.length];
+
+    final worlds = cat.worlds.where((w) => worldShown(cat, w)).toList();
+    final moods = _moods.where((m) => m.worlds.any((id) => cat.worksOf(id).isNotEmpty)).toList();
+
+    final latest = works.where((w) => w.added != null).toList()..sort((a, b) => b.added!.compareTo(a.added!));
+    final popular = works.where((w) => w.plays > 0).toList()..sort((a, b) => b.plays.compareTo(a.plays));
+
+    // مختارات لك: من عوالم ما يحبه ويسمعه، ولم يسمعه بعد.
+    final likedWorlds = <String>{
+      for (final id in [...lib.favorites, ...lib.recent]) ...?cat.workById(id)?.worldIds,
+    };
+    final picks = works.where((w) => !lib.recent.contains(w.id) && w.worldIds.any(likedWorlds.contains)).toList();
+
+    final bedtime = <Work>{...cat.worksOf(_W.bedtime), ...cat.worksOf(_W.tranquility)}.toList();
+    final journeys = works.where((w) => w.chapters.length > 1).toList();
+
+    final sections = <String, List<Widget>>{
+      'continue': [
+        if (recent.isNotEmpty) ...[
+          const SliverToBoxAdapter(child: AtheerSectionHeader(title: 'أكمل الاستماع', overline: 'من حيث توقفت')),
+          SliverToBoxAdapter(child: _ContinueRow(works: recent)),
+        ],
+      ],
+      'mood': [
+        if (moods.isNotEmpty) ...[
+          const SliverToBoxAdapter(child: AtheerSectionHeader(title: 'كيف تشعر الآن؟', subtitle: 'اختر شعورك ونأخذك لما يناسبه')),
+          SliverToBoxAdapter(child: _MoodRow(moods: moods, onOpenWorld: onOpenWorld, catalog: cat)),
+        ],
+      ],
+      'message': [
+        if (message != null) ...[
+          const SliverToBoxAdapter(child: AtheerSectionHeader(title: 'رسالة اليوم')),
+          SliverToBoxAdapter(child: _DailyMessage(work: message)),
+        ],
+      ],
+      'worlds': [
+        if (worlds.isNotEmpty) ...[
+          SliverToBoxAdapter(
+            child: AtheerSectionHeader(
+              title: 'عوالم أثير',
+              subtitle: '${arNum(worlds.length)} عالمًا من الحكايات',
+              onAction: onOpenWorlds,
+            ),
+          ),
+          SliverToBoxAdapter(child: _WorldsRow(worlds: worlds, catalog: cat, onOpenWorld: onOpenWorld)),
+        ],
+      ],
+      'bedtime': _shelf('قبل أن تنام', bedtime, subtitle: 'حكايات هادئة لآخر اليوم', onAction: () => onOpenWorld(_W.bedtime)),
+      'latest': _shelf('أحدث الإضافات', latest.take(12).toList()),
+      'popular': _shelf('الأكثر استماعًا', popular.take(12).toList()),
+      'picks': _shelf('مختارات لك', picks.take(12).toList(), subtitle: 'من العوالم التي تحبها'),
+      'journeys': _shelf('رحلات صوتية', journeys.take(12).toList(), subtitle: 'حكايات على فصول'),
+    };
+
+    // ترتيب مرن: في الليل يتقدّم «قبل أن تنام».
+    final order = night
+        ? ['continue', 'bedtime', 'mood', 'message', 'worlds', 'latest', 'picks', 'popular', 'journeys']
+        : ['continue', 'mood', 'worlds', 'message', 'latest', 'popular', 'picks', 'journeys', 'bedtime'];
 
     return CustomScrollView(slivers: [
-      SliverSafeArea(
-        bottom: false,
-        sliver: SliverToBoxAdapter(child: _TopBar(onSearch: () => openSearch(context))),
-      ),
+      SliverSafeArea(bottom: false, sliver: SliverToBoxAdapter(child: _TopBar(onSearch: () => openSearch(context)))),
       SliverToBoxAdapter(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(_gutter, 26, _gutter, 0),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Icon(night ? Icons.nightlight_round : Icons.wb_twilight_rounded, size: 15, color: MidadColors.accent),
-              const SizedBox(width: 6),
-              Text(greeting(now), style: MidadText.ui(size: 13, weight: FontWeight.w600, color: MidadColors.accent)),
+          padding: const EdgeInsets.fromLTRB(AtheerSpacing.gutter, AtheerSpacing.xxl, AtheerSpacing.gutter, 0),
+          child: AtheerReveal(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Icon(night ? Icons.nightlight_round : Icons.wb_twilight_rounded, size: AtheerIconSize.xs, color: AtheerColors.accent),
+                const SizedBox(width: 6),
+                Text(greeting(now), style: AtheerType.overline()),
+              ]),
+              const SizedBox(height: AtheerSpacing.sm),
+              Text(night ? 'ماذا تودّ أن تسمع الليلة؟' : 'ماذا تودّ أن تسمع اليوم؟', style: AtheerType.h1()),
             ]),
-            const SizedBox(height: 8),
-            Text(night ? 'ماذا تودّ أن تسمع الليلة؟' : 'ماذا تودّ أن تسمع اليوم؟', style: MidadText.title(size: 26, height: 1.35)),
-          ]),
+          ),
         ),
       ),
       if (featured != null)
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(_gutter, 22, _gutter, 0),
-            child: _Featured(work: featured, night: night, world: cat.worldOf(featured)),
+            padding: const EdgeInsets.fromLTRB(AtheerSpacing.gutter, AtheerSpacing.xl, AtheerSpacing.gutter, 0),
+            child: AtheerReveal(index: 1, child: _Featured(work: featured, world: cat.worldOf(featured))),
           ),
         ),
-      if (recent.isNotEmpty) ...[
-        const SliverToBoxAdapter(child: _Header(title: 'أكمل الاستماع')),
-        SliverToBoxAdapter(child: _ContinueRow(works: recent)),
-      ],
-      for (final w in cat.worlds)
-        if (cat.worksOf(w.id).isNotEmpty) ...[
-          SliverToBoxAdapter(child: _Header(title: w.name, subtitle: w.tagline, onSeeAll: () => onOpenWorld(w.id))),
-          SliverToBoxAdapter(child: _Shelf(works: cat.worksOf(w.id))),
-        ],
-      if (cat.works.isEmpty) const SliverFillRemaining(hasScrollBody: false, child: _Empty()),
-      const SliverToBoxAdapter(child: SizedBox(height: 28)),
+      for (final key in order) ...sections[key]!,
+      if (works.isEmpty)
+        const SliverFillRemaining(
+          hasScrollBody: false,
+          child: AtheerEmptyState(
+            icon: Icons.nightlight_round,
+            title: 'قريبًا تصل أول الحكايات',
+            message: 'نُعدّ لك حكايات هادئة تُروى بصوت دافئ. عُد إلينا بعد قليل.',
+          ),
+        ),
+      const SliverToBoxAdapter(child: SizedBox(height: AtheerSpacing.xxxl)),
     ]);
+  }
+
+  /// رف أفقي. لا يظهر لو فاضي.
+  List<Widget> _shelf(String title, List<Work> works, {String? subtitle, VoidCallback? onAction}) {
+    if (works.isEmpty) return const [];
+    return [
+      SliverToBoxAdapter(child: AtheerSectionHeader(title: title, subtitle: subtitle, onAction: onAction)),
+      SliverToBoxAdapter(child: _Shelf(works: works)),
+    ];
   }
 }
 
@@ -95,208 +204,67 @@ class _TopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(HomeScreen._gutter, 12, HomeScreen._gutter, 0),
+      padding: const EdgeInsets.fromLTRB(AtheerSpacing.gutter, AtheerSpacing.md, AtheerSpacing.gutter - 4, 0),
       child: Row(children: [
         Container(
           padding: const EdgeInsets.all(1.5),
-          decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: MidadColors.accent.op(0.45))),
+          decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AtheerColors.accent.op(0.45))),
           child: ClipOval(child: Image.asset('assets/brand/logo.png', width: 32, height: 32, fit: BoxFit.cover)),
         ),
         const SizedBox(width: 10),
-        Expanded(child: Text(AppConfig.appName, style: MidadText.title(size: 19))),
-        Semantics(
-          button: true,
-          label: 'بحث',
-          child: InkResponse(
-            onTap: onSearch,
-            radius: 24,
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.op(0.06),
-                border: Border.all(color: Colors.white.op(0.10)),
-              ),
-              child: const Icon(Icons.search_rounded, size: 21, color: Colors.white),
-            ),
-          ),
-        ),
+        Expanded(child: Text(AppConfig.appName, style: AtheerType.h3())),
+        AtheerIconButton(icon: Icons.search_rounded, tooltip: 'بحث', onPressed: onSearch, size: 42),
       ]),
     );
   }
 }
 
-/// عنوان رف: اسم العالم ووصفه القصير، و«عرض الكل».
-class _Header extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final VoidCallback? onSeeAll;
-  const _Header({required this.title, this.subtitle = '', this.onSeeAll});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(HomeScreen._gutter, 34, HomeScreen._gutter, 14),
-      child: Row(children: [
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(title, style: MidadText.title(size: 18)),
-            if (subtitle.isNotEmpty) ...[
-              const SizedBox(height: 3),
-              Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: MidadText.ui(size: 12.5, color: Colors.white.op(0.55))),
-            ],
-          ]),
-        ),
-        if (onSeeAll != null)
-          InkWell(
-            onTap: onSeeAll,
-            borderRadius: BorderRadius.circular(14),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Text('عرض الكل', style: MidadText.ui(size: 12.5, weight: FontWeight.w600, color: MidadColors.accent)),
-                const SizedBox(width: 2),
-                Icon(Icons.chevron_left_rounded, size: 18, color: MidadColors.accent),
-              ]),
-            ),
-          ),
-      ]),
-    );
-  }
-}
-
-/// الحكاية المختارة: غلاف كبير والعنوان والتشغيل في أسفله.
+/// اختيار أثير اليوم: مشهد Hero كبير.
 class _Featured extends StatelessWidget {
   final Work work;
   final World? world;
-  final bool night;
-  const _Featured({required this.work, required this.night, this.world});
+  const _Featured({required this.work, this.world});
 
   @override
   Widget build(BuildContext context) {
     final lib = context.read<LibraryStore>();
     final meta = [
-      if (work.kind.isNotEmpty) work.kind,
+      if (world != null) world!.name,
       if (work.minutes > 0) '${arNum(work.minutes)} دقيقة',
       if (work.chapters.length > 1) '${arNum(work.chapters.length)} فصول',
     ].join('  ·  ');
-
-    return GestureDetector(
-      onTap: () => Navigator.of(context).push(fadeRoute(WorkScreen(work: work))),
-      child: AspectRatio(
-        aspectRatio: 1.18,
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(28),
-            boxShadow: [BoxShadow(color: Colors.black.op(0.40), blurRadius: 30, offset: const Offset(0, 14))],
-          ),
-          foregroundDecoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: Colors.white.op(0.08)),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(28),
-            child: Stack(fit: StackFit.expand, children: [
-              CoverArt(art: work.art, url: work.cover),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, MidadColors.ink.op(0.55), MidadColors.ink.op(0.94)],
-                    stops: const [0.30, 0.62, 1],
-                  ),
-                ),
-              ),
-              PositionedDirectional(
-                top: 16,
-                start: 16,
-                child: _Eyebrow(text: night ? 'مختارة لك الليلة' : 'مختارة لك اليوم'),
-              ),
-              if (work.premium) const PositionedDirectional(top: 16, end: 16, child: _PremiumBadge()),
-              Positioned(
-                left: 20,
-                right: 20,
-                bottom: 20,
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  if (world != null) ...[
-                    Text(world!.name, style: MidadText.ui(size: 12, weight: FontWeight.w600, color: MidadColors.accent)),
-                    const SizedBox(height: 4),
-                  ],
-                  Text(work.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: MidadText.title(size: 25, height: 1.3)),
-                  if (meta.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Text(meta, style: MidadText.ui(size: 12.5, color: Colors.white.op(0.70))),
-                  ],
-                  const SizedBox(height: 16),
-                  Row(children: [
-                    Flexible(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: AlignmentDirectional.centerStart,
-                        child: AccentButton(
-                          label: 'استمع الآن',
-                          icon: Icons.play_arrow_rounded,
-                          height: 46,
-                          onTap: () => listenTo(context, work, chapter: lib.lastChapter[work.id] ?? 0),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    const Spacer(),
-                    HeartButton(workId: work.id, size: 44),
-                  ]),
-                ]),
-              ),
-            ]),
-          ),
+    final fav = context.watch<LibraryStore>().isFav(work.id);
+    final w = MediaQuery.sizeOf(context).width;
+    return AtheerHeroBanner(
+      height: (w * 1.0).clamp(320.0, 440.0),
+      overline: 'اختيار أثير اليوم',
+      title: work.title,
+      subtitle: meta,
+      tint: world?.color,
+      onTap: () => Navigator.of(context).push(AtheerMotion.fadeThrough(WorkScreen(work: work))),
+      background: Stack(fit: StackFit.expand, children: [
+        CoverArt(art: work.art, url: work.cover),
+        if (work.premium) const PositionedDirectional(top: 16, end: 16, child: AtheerBadge(icon: Icons.lock_rounded, label: 'اشتراك')),
+      ]),
+      actions: [
+        AtheerPrimaryButton(
+          label: 'استمع الآن',
+          icon: Icons.play_arrow_rounded,
+          height: 48,
+          onPressed: () => listenTo(context, work, chapter: lib.lastChapter[work.id] ?? 0),
         ),
-      ),
+        AtheerIconButton(
+          icon: fav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+          tooltip: fav ? 'إزالة من المفضلة' : 'إضافة للمفضلة',
+          selected: fav,
+          onPressed: () => lib.toggleFav(work.id),
+        ),
+      ],
     );
   }
 }
 
-class _Eyebrow extends StatelessWidget {
-  final String text;
-  const _Eyebrow({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
-      decoration: BoxDecoration(
-        color: MidadColors.ink.op(0.55),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: MidadColors.accent.op(0.35)),
-      ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(Icons.auto_awesome_rounded, size: 12, color: MidadColors.accent),
-        const SizedBox(width: 5),
-        Text(text, style: MidadText.ui(size: 11, weight: FontWeight.w600, color: Colors.white.op(0.92))),
-      ]),
-    );
-  }
-}
-
-class _PremiumBadge extends StatelessWidget {
-  const _PremiumBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(color: Colors.black.op(0.50), borderRadius: BorderRadius.circular(20)),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(Icons.lock_rounded, size: 11, color: MidadColors.accent),
-        const SizedBox(width: 4),
-        Text('اشتراك', style: MidadText.ui(size: 10, weight: FontWeight.w700)),
-      ]),
-    );
-  }
-}
-
-/// أكمل الاستماع: بطاقات أفقية صغيرة فيها الفصل الحالي وتقدّم الحكاية.
+/// أكمل الاستماع: بطاقات أفقية فيها الفصل الحالي وتقدّم الحكاية.
 class _ContinueRow extends StatelessWidget {
   final List<Work> works;
   const _ContinueRow({required this.works});
@@ -305,17 +273,17 @@ class _ContinueRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final lib = context.watch<LibraryStore>();
     return SizedBox(
-      height: 84,
+      height: 88,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: HomeScreen._gutter),
+        padding: const EdgeInsets.symmetric(horizontal: AtheerSpacing.gutter),
         itemCount: works.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        separatorBuilder: (_, __) => const SizedBox(width: AtheerSpacing.md),
         itemBuilder: (_, i) {
           final w = works[i];
           final ch = (lib.lastChapter[w.id] ?? 0).clamp(0, w.chapters.isEmpty ? 0 : w.chapters.length - 1);
           final total = w.chapters.length;
-          final progress = total == 0 ? 0.0 : (ch + 1) / total;
+          final progress = total > 1 ? (ch + 1) / total : null;
           final sub = total > 1 ? 'الفصل ${arNum(ch + 1)} من ${arNum(total)}' : (w.minutes > 0 ? '${arNum(w.minutes)} دقيقة' : w.kind);
           return _ContinueTile(work: w, subtitle: sub, progress: progress, onPlay: () => listenTo(context, w, chapter: ch));
         },
@@ -327,148 +295,176 @@ class _ContinueRow extends StatelessWidget {
 class _ContinueTile extends StatelessWidget {
   final Work work;
   final String subtitle;
-  final double progress;
+  final double? progress;
   final VoidCallback onPlay;
   const _ContinueTile({required this.work, required this.subtitle, required this.progress, required this.onPlay});
 
   @override
   Widget build(BuildContext context) {
-    final p = MidadColors.palette;
-    return GestureDetector(
-      onTap: onPlay,
-      child: Container(
-        width: 268,
+    return Semantics(
+      button: true,
+      label: 'أكمل ${work.title}',
+      excludeSemantics: true,
+      child: AtheerGlassCard(
+        blur: false,
+        onTap: onPlay,
         padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: p.surface.op(0.72),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.op(0.07)),
+        radius: BorderRadius.circular(AtheerRadius.lg - 2),
+        child: SizedBox(
+          width: 252,
+          child: Row(children: [
+            SizedBox(width: 66, height: 66, child: CoverArt(art: work.art, url: work.cover, radius: BorderRadius.circular(AtheerRadius.sm + 2))),
+            const SizedBox(width: AtheerSpacing.md),
+            Expanded(
+              child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(work.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: AtheerType.label()),
+                const SizedBox(height: 3),
+                Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: AtheerType.bodySmall()),
+                if (progress != null) ...[
+                  const SizedBox(height: AtheerSpacing.sm),
+                  AtheerProgressLine(value: progress!),
+                ],
+              ]),
+            ),
+            const SizedBox(width: 10),
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(shape: BoxShape.circle, gradient: AtheerGradients.accent),
+              child: Icon(Icons.play_arrow_rounded, size: 22, color: AtheerColors.background),
+            ),
+          ]),
         ),
-        child: Row(children: [
-          SizedBox(width: 64, height: 64, child: CoverArt(art: work.art, url: work.cover, radius: BorderRadius.circular(14))),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(work.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: MidadText.ui(size: 14, weight: FontWeight.w700)),
-              const SizedBox(height: 3),
-              Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: MidadText.ui(size: 11.5, color: Colors.white.op(0.6))),
-              const SizedBox(height: 8),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(2),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  minHeight: 3,
-                  backgroundColor: Colors.white.op(0.10),
-                  valueColor: AlwaysStoppedAnimation(p.accent),
-                ),
-              ),
-            ]),
-          ),
-          const SizedBox(width: 10),
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(shape: BoxShape.circle, gradient: p.button),
-            child: Icon(Icons.play_arrow_rounded, size: 22, color: p.bg),
-          ),
-        ]),
       ),
     );
   }
 }
 
-/// رف حكايات عالم واحد: غلاف طولي والعنوان والمدة تحته.
-class _Shelf extends StatelessWidget {
-  final List<Work> works;
-  const _Shelf({required this.works});
-
-  static const _w = 146.0, _cover = 194.0;
+/// «كيف تشعر الآن؟»: شرائح مزاج تفتح العالم الأنسب الذي فيه محتوى.
+class _MoodRow extends StatelessWidget {
+  final List<_Mood> moods;
+  final Catalog catalog;
+  final void Function(String) onOpenWorld;
+  const _MoodRow({required this.moods, required this.catalog, required this.onOpenWorld});
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: _cover + 52,
+      height: 46,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: HomeScreen._gutter),
-        itemCount: works.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 14),
-        itemBuilder: (_, i) => _PosterCard(work: works[i]),
+        padding: const EdgeInsets.symmetric(horizontal: AtheerSpacing.gutter),
+        itemCount: moods.length,
+        separatorBuilder: (_, __) => const SizedBox(width: AtheerSpacing.sm),
+        itemBuilder: (_, i) {
+          final m = moods[i];
+          final target = m.worlds.firstWhere((id) => catalog.worksOf(id).isNotEmpty);
+          return Semantics(
+            button: true,
+            label: m.label,
+            excludeSemantics: true,
+            child: AtheerPressable(
+              onTap: () => onOpenWorld(target),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: AtheerSpacing.lg),
+                decoration: BoxDecoration(
+                  color: Colors.white.op(AtheerOpacity.glassFill),
+                  borderRadius: BorderRadius.circular(AtheerRadius.pill),
+                  border: Border.all(color: Colors.white.op(AtheerOpacity.hairline)),
+                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(m.icon, size: AtheerIconSize.sm, color: AtheerColors.accent),
+                  const SizedBox(width: AtheerSpacing.sm),
+                  Text(m.label, style: AtheerType.label()),
+                ]),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 }
 
-class _PosterCard extends StatelessWidget {
+/// رسالة اليوم: حكمة بخط أميري من وصف عمل حقيقي، تفتح العمل عند الضغط.
+class _DailyMessage extends StatelessWidget {
   final Work work;
-  const _PosterCard({required this.work});
+  const _DailyMessage({required this.work});
 
   @override
   Widget build(BuildContext context) {
-    final meta = [
-      if (work.minutes > 0) '${arNum(work.minutes)} دقيقة',
-      if (work.chapters.length > 1) '${arNum(work.chapters.length)} فصول',
-    ].join(' · ');
-    return GestureDetector(
-      onTap: () => Navigator.of(context).push(fadeRoute(WorkScreen(work: work))),
-      child: SizedBox(
-        width: _Shelf._w,
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Container(
-            height: _Shelf._cover,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [BoxShadow(color: Colors.black.op(0.32), blurRadius: 16, offset: const Offset(0, 8))],
-            ),
-            foregroundDecoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.op(0.07)),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: Stack(fit: StackFit.expand, children: [
-                CoverArt(art: work.art, url: work.cover),
-                PositionedDirectional(top: 8, end: 8, child: HeartButton(workId: work.id, size: 28)),
-                if (work.premium) const PositionedDirectional(top: 9, start: 9, child: _PremiumBadge()),
-              ]),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(work.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: MidadText.ui(size: 14, weight: FontWeight.w600)),
-          if (meta.isNotEmpty) ...[
-            const SizedBox(height: 2),
-            Text(meta, maxLines: 1, overflow: TextOverflow.ellipsis, style: MidadText.ui(size: 11.5, color: Colors.white.op(0.55))),
-          ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AtheerSpacing.gutter),
+      child: AtheerGlassCard(
+        blur: false,
+        onTap: () => Navigator.of(context).push(AtheerMotion.fadeThrough(WorkScreen(work: work))),
+        padding: const EdgeInsets.fromLTRB(AtheerSpacing.xxl, AtheerSpacing.xl, AtheerSpacing.xxl, AtheerSpacing.lg),
+        child: Column(children: [
+          Icon(Icons.format_quote_rounded, color: AtheerColors.accent.op(0.7), size: AtheerIconSize.lg),
+          const SizedBox(height: AtheerSpacing.xs),
+          Text(work.description, textAlign: TextAlign.center, maxLines: 5, overflow: TextOverflow.ellipsis, style: AtheerType.quoteMedium()),
+          const SizedBox(height: AtheerSpacing.md),
+          Text(work.title, style: AtheerType.bodySmall(color: AtheerColors.accent)),
         ]),
       ),
     );
   }
 }
 
-class _Empty extends StatelessWidget {
-  const _Empty();
+/// عوالم أثير: صف أفقي من بطاقات الأقسام بصورها الأصلية.
+class _WorldsRow extends StatelessWidget {
+  final List<World> worlds;
+  final Catalog catalog;
+  final void Function(String) onOpenWorld;
+  const _WorldsRow({required this.worlds, required this.catalog, required this.onOpenWorld});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 40),
-      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Container(
-          width: 76,
-          height: 76,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: MidadColors.accent.op(0.10),
-            border: Border.all(color: MidadColors.accent.op(0.30)),
-          ),
-          child: Icon(Icons.nightlight_round, size: 32, color: MidadColors.accent),
+    return SizedBox(
+      height: 190,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: AtheerSpacing.gutter),
+        itemCount: worlds.length,
+        separatorBuilder: (_, __) => const SizedBox(width: AtheerSpacing.md),
+        itemBuilder: (_, i) {
+          final w = worlds[i];
+          final n = catalog.worksOf(w.id).length;
+          return SizedBox(
+            width: 150,
+            child: AtheerCategoryCard(
+              title: w.name,
+              count: n,
+              color: w.color,
+              art: WorldArt(world: w, decodeWidth: 400),
+              onTap: () => onOpenWorld(w.id),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// رف أفقي من بطاقات القصص.
+class _Shelf extends StatelessWidget {
+  final List<Work> works;
+  const _Shelf({required this.works});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 262,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: AtheerSpacing.gutter),
+        itemCount: works.length,
+        separatorBuilder: (_, __) => const SizedBox(width: AtheerSpacing.md + 2),
+        itemBuilder: (_, i) => AtheerStoryCard(
+          work: works[i],
+          onTap: () => Navigator.of(context).push(AtheerMotion.fadeThrough(WorkScreen(work: works[i]))),
         ),
-        const SizedBox(height: 18),
-        Text('قريبًا تصل أول الحكايات', textAlign: TextAlign.center, style: MidadText.title(size: 18)),
-        const SizedBox(height: 6),
-        Text('نُعدّ لك حكايات هادئة تُروى بصوت دافئ. عُد إلينا بعد قليل.',
-            textAlign: TextAlign.center, style: MidadText.ui(size: 13, color: Colors.white.op(0.6), height: 1.6)),
-      ]),
+      ),
     );
   }
 }

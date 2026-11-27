@@ -45,7 +45,9 @@ void main() {
     }
   });
 
-  Work work(String id, String world, String title, String art, int minutes, {bool premium = false, int chapters = 1}) => Work(
+  Work work(String id, String world, String title, String art, int minutes, {bool premium = false, int chapters = 1, int plays = 0, int age = 0}) => Work(
+        plays: plays,
+        added: DateTime(2026, 11, 20).subtract(Duration(days: age)),
         id: id,
         worldId: world,
         title: title,
@@ -62,17 +64,17 @@ void main() {
         version: '1',
         ambience: const [],
         worlds: [
-          World(id: 'tales', name: 'عالم الحكايات', short: 'حكايات', tagline: 'قصص هادئة تأخذك إلى النوم', color: const Color(0xFFC8AA78), art: 'lantern'),
-          World(id: 'know', name: 'عالم المعرفة', short: 'معرفة', tagline: 'رحلات قصيرة في الكون والبحر', color: const Color(0xFF345653), art: 'mind'),
-          World(id: 'morning', name: 'صباحات أثير', short: 'صباح', tagline: '', color: const Color(0xFF192C40), art: 'morning'),
+          World(id: 'bedtime_stories', name: 'قبل أن تنام', short: 'قبل النوم', tagline: 'قصص هادئة تأخذك إلى النوم', color: const Color(0xFFC8AA78), art: 'lantern'),
+          World(id: 'wisdom_minutes', name: 'دقائق من الحكمة', short: 'حكمة', tagline: 'رحلات قصيرة في الكون والبحر', color: const Color(0xFF345653), art: 'mind'),
+          World(id: 'tranquility', name: 'طمأنينة', short: 'طمأنينة', tagline: '', color: const Color(0xFF192C40), art: 'morning'),
         ],
         works: [
-          work('w1', 'tales', 'ما بعد العاصفة', 'lantern', 14, chapters: 3),
-          work('w2', 'tales', 'المسافر الذي لم يعد', 'traveler', 22),
-          work('w3', 'tales', 'حارس المنارة الأخير', 'storm', 18, premium: true),
-          work('w4', 'know', 'أسرار الأعماق', 'deepsea', 11),
-          work('w5', 'know', 'خريطة النجوم', 'mind', 9),
-          work('w6', 'morning', 'شاي الصباح', 'morning', 6),
+          work('w1', 'bedtime_stories', 'ما بعد العاصفة', 'lantern', 14, chapters: 3),
+          work('w2', 'bedtime_stories', 'المسافر الذي لم يعد', 'traveler', 22, plays: 40, age: 3),
+          work('w3', 'bedtime_stories', 'حارس المنارة الأخير', 'storm', 18, premium: true),
+          work('w4', 'wisdom_minutes', 'أسرار الأعماق', 'deepsea', 11, plays: 12, age: 1),
+          work('w5', 'wisdom_minutes', 'خريطة النجوم', 'mind', 9),
+          work('w6', 'tranquility', 'شاي الصباح', 'morning', 6),
         ],
       );
 
@@ -85,7 +87,7 @@ void main() {
     File('$out/$name.png').writeAsBytesSync(png!.buffer.asUint8List());
   }
 
-  Future<void> render(WidgetTester tester, {required Size size, required AtheerPalette palette, Catalog? catalog, List<String> recent = const [], String? name}) async {
+  Future<void> render(WidgetTester tester, {required Size size, required AtheerPalette palette, Catalog? catalog, List<String> recent = const [], List<String> favs = const [], String? name}) async {
     SharedPreferences.setMockInitialValues({});
     MidadColors.use(palette);
     tester.view.physicalSize = size * 2;
@@ -98,6 +100,7 @@ void main() {
       lib.recent.insert(0, id);
     }
     if (recent.isNotEmpty) lib.lastChapter[recent.first] = 1;
+    lib.favorites.addAll(favs);
     final key = GlobalKey();
     await tester.pumpWidget(MultiProvider(
       providers: [
@@ -126,6 +129,7 @@ void main() {
       ),
     ));
     await tester.pump(const Duration(milliseconds: 600));
+    await tester.pump(const Duration(milliseconds: 600)); // تكتمل حركات الظهور
     expect(tester.takeException(), isNull);
     if (name != null) await shot(tester, key, name);
     // نتجاوز مؤقّت فحص التحديثات ثم نفرّغ الشجرة.
@@ -148,6 +152,7 @@ void main() {
     addTearDown(() => debugDisableShadows = true);
     const size = Size(390, 844);
     await render(tester, size: size, palette: AtheerPalettes.atheer, name: 'atheer');
+    await render(tester, size: const Size(390, 2900), palette: AtheerPalettes.atheer, recent: ['w2', 'w4'], favs: ['w1'], name: 'atheer-full');
     await render(tester, size: size, palette: AtheerPalettes.atheer, recent: ['w2', 'w4'], name: 'atheer-resume');
     await render(tester, size: size, palette: AtheerPalettes.violet, name: 'violet');
     await render(tester, size: size, palette: AtheerPalettes.violet, recent: ['w2', 'w4'], name: 'violet-resume');
