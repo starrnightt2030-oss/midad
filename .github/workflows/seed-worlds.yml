@@ -1,0 +1,25 @@
+name: أقسام عوالم أثير
+
+# يضيف الأقسام الـ16 في Supabase لو مش موجودة (آمن للتكرار، ولا يحذف شيئًا).
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/seed_worlds.py'
+      - 'tools/worlds_seed.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SUPABASE_URL: https://scrynlokpplwolbltghf.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: إضافة الأقسام
+        run: python3 tools/seed_worlds.py

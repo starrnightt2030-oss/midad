@@ -47,7 +47,8 @@ create policy admin_all on public.work_worlds for all to authenticated using (pu
 -- ═══════════ الأقسام الـ16 ═══════════
 -- الصورة الافتراضية لكل قسم موجودة داخل التطبيق (assets/categories/<id>.webp)؛ cover يفضل فاضي
 -- إلا لو الأدمن رفع صورة بديلة.
-insert into public.worlds (id, name, short, tagline, description, color, color2, art, sort_order) values
+insert into public.worlds (id, name, short, tagline, description, color, color2, art, sort_order)
+select v.* from (values
   ('heartfelt_messages', 'رسائل من القلب', 'رسائل من القلب', 'كلمات تصل إلى أعماق قلبك',
    'رسائل إنسانية مؤثرة، ومواساة، وكلمات يحتاج الإنسان إلى سماعها في أوقات مختلفة من حياته.', '#E8A0A8', '#D4AF6A', 'rose', 1),
   ('meaningful_words', 'كلمات لها معنى', 'كلمات لها معنى', 'كلمات قليلة... ومعانٍ لا تنتهي',
@@ -80,14 +81,41 @@ insert into public.worlds (id, name, short, tagline, description, color, color2,
    'قصص القرارات المصيرية والمواقف التي غيرت حياة أصحابها بالكامل.', '#4FC08D', '#D4AF37', 'butterfly', 15),
   ('spiritual_nourishment', 'زاد الروح', 'زاد الروح', 'ما يحيي القلب ويغذي الروح',
    'خواطر إيمانية ومواعظ وتدبر ومعانٍ روحانية تقرب الإنسان من الله.', '#E9DFC7', '#2E7D5B', 'beads', 16)
+) v(id, name, short, tagline, description, color, color2, art, sort_order)
+-- القسم الموجود بنفس الاسم (حتى بمعرّف تاني) مش بيتكرر.
+where not exists (select 1 from public.worlds w where w.id = v.id or regexp_replace(translate(w.name, 'أإآةى', 'اااهي'), '[[:space:].«»ـ-]', '', 'g') = regexp_replace(translate(v.name, 'أإآةى', 'اااهي'), '[[:space:].«»ـ-]', '', 'g'))
 on conflict (id) do nothing;
 
 -- الأقسام القديمة (لو موجودة) تنزل بعد الـ16 بنفس ترتيبها؛ الأدمن يقدر يغيّر الترتيب بعدين.
 update public.worlds set sort_order = sort_order + 100
-where sort_order < 100 and id not in (
+where sort_order < 100
+  and regexp_replace(translate(name, 'أإآةى', 'اااهي'), '[[:space:].«»ـ-]', '', 'g') not in (select regexp_replace(translate(n, 'أإآةى', 'اااهي'), '[[:space:].«»ـ-]', '', 'g') from unnest(array['رسائل من القلب','كلمات لها معنى','قصص من الواقع','من الأرشيف','قصص من القرآن','سيرة ومسيرة','قبل أن تنام','رحلة إلى الذات','طمأنينة','علمتني الحياة','بعد العسر يسر','دقائق من الحكمة','بين القلوب','حكايات زمان','نقطة تحول','زاد الروح']) n)
+  and id not in (
   'heartfelt_messages','meaningful_words','real_stories','from_the_archive','quran_stories','biographies',
   'bedtime_stories','self_discovery','tranquility','life_lessons','hope_after_hardship','wisdom_minutes',
   'between_hearts','nostalgic_tales','turning_point','spiritual_nourishment');
+
+-- الأقسام اللي اتضافت قبل الملف ده (من GitHub) ناقصها الوصف واللون الثاني.
+update public.worlds w set description = v.description, color2 = v.color2
+from (values
+  ('heartfelt_messages', 'رسائل إنسانية مؤثرة، ومواساة، وكلمات يحتاج الإنسان إلى سماعها في أوقات مختلفة من حياته.', '#D4AF6A'),
+  ('meaningful_words', 'حكم ومواعظ وتأملات تحمل معاني عميقة ودروسًا مستفادة من الحياة.', '#8B5E3C'),
+  ('real_stories', 'قصص حقيقية وتجارب إنسانية ومواقف واقعية تحمل العبرة والأمل والدروس المستفادة.', '#7A3E2B'),
+  ('from_the_archive', 'حكايات من الماضي وأحداث تاريخية وقصص منسية تستحق أن تُروى من جديد.', '#6B4226'),
+  ('quran_stories', 'القصص الواردة في القرآن الكريم بأسلوب سردي مؤثر، مع الالتزام بالمصادر الصحيحة واستخلاص العبر والدروس.', '#D4AF37'),
+  ('biographies', 'سير الأنبياء والصحابة والعلماء والشخصيات المؤثرة وأصحاب الإنجازات، مع توثيق الروايات.', '#5E4330'),
+  ('bedtime_stories', 'قصص هادئة وحكايات مسموعة وكلمات مطمئنة تساعد على الاسترخاء والاستعداد للنوم.', '#1C2457'),
+  ('self_discovery', 'تنمية الذات والثقة بالنفس وفهم المشاعر وتطوير الشخصية والتعامل مع ضغوط الحياة.', '#2F5D3A'),
+  ('tranquility', 'كلمات عن السكينة والصبر والرضا والتوكل والتعامل مع الحزن والقلق وضغوط الحياة.', '#1E6F8F'),
+  ('life_lessons', 'دروس الحياة والتجارب والمواقف الإنسانية التي تغير نظرة الإنسان إلى العالم.', '#8A4B12'),
+  ('hope_after_hardship', 'قصص تجاوز المحن والابتلاءات والفشل والعودة إلى الحياة بأمل جديد.', '#2A1A12'),
+  ('wisdom_minutes', 'حكم وخواطر ومواعظ صوتية قصيرة تتراوح مدتها بين دقيقة وخمس دقائق.', '#121212'),
+  ('between_hearts', 'العلاقات الإنسانية والزواج والصداقة والأسرة والحب والتسامح وفهم الآخرين.', '#7D8B52'),
+  ('nostalgic_tales', 'حكايات التراث الشعبي والذكريات الجميلة والحياة في الزمن القديم.', '#5B4A3A'),
+  ('turning_point', 'قصص القرارات المصيرية والمواقف التي غيرت حياة أصحابها بالكامل.', '#D4AF37'),
+  ('spiritual_nourishment', 'خواطر إيمانية ومواعظ وتدبر ومعانٍ روحانية تقرب الإنسان من الله.', '#2E7D5B')
+) v(id, description, color2)
+where w.id = v.id and w.description = '';
 
 -- ═══════════ الفهرس ═══════════
 -- نفس الشكل القديم (التطبيق القديم يكمل يشتغل)، مع:
