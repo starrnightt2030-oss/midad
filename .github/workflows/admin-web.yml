@@ -3,9 +3,9 @@ name: لوحة الإدارة
 on:
   push:
     branches: [main]
-    paths: ['admin/**', 'tools/ci/patch_admin_android.py', '.github/workflows/admin-web.yml']
+    paths: ['admin/**', 'tools/ci/**', '.github/workflows/admin-web.yml']
   pull_request:
-    paths: ['admin/**', 'tools/ci/patch_admin_android.py', '.github/workflows/admin-web.yml']
+    paths: ['admin/**', 'tools/ci/**', '.github/workflows/admin-web.yml']
   workflow_dispatch:
 
 permissions:
