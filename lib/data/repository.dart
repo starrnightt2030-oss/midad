@@ -54,6 +54,14 @@ class ContentRepository extends ChangeNotifier {
     return body == 'null' ? null : body;
   }
 
+  final Set<String> _counted = {};
+
+  /// يعدّ مرة استماع للقصة (مرة واحدة لكل قصة في كل تشغيل للتطبيق) لـ«الأكثر استماعًا».
+  void countPlay(String workId) {
+    if (!_hasSupabase || !_counted.add(workId)) return;
+    _rpc('count_play', {'p_work': workId}).catchError((_) => null);
+  }
+
   /// يجلب الفهرس من Supabase. القاعدة الفارغة فهرس صحيح (بدون قصص بعد).
   Future<String?> _fetchRemote() async {
     if (!_hasSupabase) return null;

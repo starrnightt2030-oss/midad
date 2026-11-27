@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../data/repository.dart';
 import '../models.dart';
 import '../state/account.dart';
 import '../state/library.dart';
@@ -23,6 +24,7 @@ void listenTo(BuildContext context, Work w, {int chapter = 0}) {
   if (!_allowed(context, w)) return;
   context.read<PlayerController>().open(w, chapter: chapter);
   context.read<LibraryStore>().touch(w.id, chapter);
+  context.read<ContentRepository>().countPlay(w.id);
   Navigator.of(context).push(sheetRoute(const PlayerScreen()));
 }
 
@@ -31,6 +33,7 @@ void liveRead(BuildContext context, Work w, {int chapter = 0}) {
   if (!_allowed(context, w)) return;
   context.read<PlayerController>().open(w, chapter: chapter);
   context.read<LibraryStore>().touch(w.id, chapter);
+  context.read<ContentRepository>().countPlay(w.id);
   Navigator.of(context).push(fadeRoute(const LiveReadScreen()));
 }
 
