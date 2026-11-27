@@ -262,17 +262,29 @@ class _WorldDialogState extends State<WorldDialog> {
       'empty_mode': emptyMode,
     };
     try {
-      if (newWorld) {
-        final wid = id.text.trim().isEmpty ? newId('w') : id.text.trim();
-        await db.from('worlds').insert({...row, 'id': wid, 'sort_order': widget.nextOrder});
-      } else {
-        await db.from('worlds').update(row).eq('id', widget.world!['id']);
+      Future<void> write(Map<String, dynamic> r) async {
+        if (newWorld) {
+          final wid = id.text.trim().isEmpty ? newId('w') : id.text.trim();
+          await db.from('worlds').insert({...r, 'id': wid, 'sort_order': widget.nextOrder});
+        } else {
+          await db.from('worlds').update(r).eq('id', widget.world!['id']);
+        }
       }
+
+      var basic = false;
+      try {
+        await write(row);
+      } catch (e) {
+        // قبل تشغيل 0006_worlds.sql: نحفظ الحقول الأساسية بس.
+        if (!'$e'.contains('column')) rethrow;
+        basic = true;
+        await write({for (final k in const ['name', 'short', 'tagline', 'cover', 'is_premium', 'published', 'color']) k: row[k]});
+      }
+      if (basic && mounted) toast(context, 'اتحفظ الاسم والعبارة والصورة. الوصف والإظهار محتاجين تشغيل 0006_worlds.sql في Supabase');
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
-        final msg = '$e'.contains('description') || '$e'.contains('visible') ? 'شغّل 0006_worlds.sql في Supabase الأول' : '$e';
-        toast(context, 'تعذّر الحفظ: $msg');
+        toast(context, 'تعذّر الحفظ: $e');
         setState(() => busy = false);
       }
     }

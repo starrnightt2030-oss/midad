@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'data/world_defaults.dart';
 import 'theme.dart';
 
 class World {
@@ -40,21 +41,36 @@ class World {
     this.visible = true,
     this.emptyMode = 'soon',
     this.premium = false,
-  }) : color2 = color2 ?? Color.lerp(color, Colors.black, 0.6)!;
+    String? imageId,
+  })  : color2 = color2 ?? Color.lerp(color, Colors.black, 0.6)!,
+        imageId = imageId ?? id;
+
+  /// معرّف الصورة المضمّنة (القسم الأساسي المطابق بالمعرّف أو بالاسم).
+  final String imageId;
 
   factory World.fromJson(Map<String, dynamic> j) {
-    final c = parseHex(j['color'] as String?);
-    final c2 = (j['color2'] as String?) ?? '';
+    final id = j['id'] as String;
+    final name = (j['name'] ?? '') as String;
+    // بيانات القسم الأساسي تكمّل اللي ناقص من القاعدة.
+    final d = worldDefaultFor(id, name);
+    String pick(String key, String? fallback) {
+      final v = ((j[key] ?? '') as String).trim();
+      return v.isNotEmpty ? v : (fallback ?? '');
+    }
+
+    final c = parseHex(pick('color', d?.color));
+    final c2 = pick('color2', d?.color2);
     final cover = ((j['cover'] ?? '') as String).trim();
     return World(
-      id: j['id'] as String,
-      name: (j['name'] ?? '') as String,
+      id: id,
+      name: name,
       short: (j['short'] ?? j['name'] ?? '') as String,
-      tagline: (j['tagline'] ?? '') as String,
+      tagline: pick('tagline', d?.tagline),
       color: c,
       art: (j['art'] ?? 'storm') as String,
-      description: (j['description'] ?? '') as String,
+      description: pick('description', d?.description),
       color2: c2.isEmpty ? null : parseHex(c2, c),
+      imageId: d?.id,
       cover: cover.isEmpty ? null : cover,
       visible: j['visible'] != false,
       emptyMode: (j['empty_mode'] ?? 'soon') as String,
@@ -63,7 +79,7 @@ class World {
   }
 
   /// صورة القسم المضمّنة في التطبيق (للأقسام الـ16).
-  String get bundledImage => 'assets/categories/$id.webp';
+  String get bundledImage => 'assets/categories/$imageId.webp';
 }
 
 class ChapterRef {
