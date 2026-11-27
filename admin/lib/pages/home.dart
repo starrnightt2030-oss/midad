@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api.dart';
+import '../updates.dart';
 import 'members.dart';
 import 'settings.dart';
 import 'works.dart';
@@ -16,6 +17,14 @@ class AdminHome extends StatefulWidget {
 
 class _AdminHomeState extends State<AdminHome> {
   int tab = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) AdminUpdates.checkAndPrompt(context);
+    });
+  }
 
   static const _dest = [
     (icon: Icons.auto_stories_outlined, active: Icons.auto_stories_rounded, label: 'القصص'),

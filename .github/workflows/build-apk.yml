@@ -49,6 +49,9 @@ jobs:
           channel: stable
           cache: true
 
+      # كاش Gradle: تنزيلات أقل من Maven في كل بناء
+      - uses: gradle/actions/setup-gradle@v4
+
       - name: مفتاح التوقيع الثابت (حتى تعمل التحديثات فوق النسخة القديمة)
         env:
           KEY_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
@@ -84,13 +87,19 @@ jobs:
         run: flutter test
 
       - name: بناء APK
-        run: >
-          flutter build apk --release --split-per-abi
-          --target-platform android-arm,android-arm64
-          --build-name=${{ steps.v.outputs.version }}
-          --build-number=${{ github.run_number }}
-          --dart-define=APP_VERSION=${{ steps.v.outputs.version }}
-          --dart-define=BUILD_NUMBER=${{ github.run_number }}
+        # إعادة المحاولة لو مستودع Maven رفض مؤقتًا (429 Too Many Requests):
+        # فشل واحد كان بيمنع نشر النسخة الجديدة فلا يصل التحديث للموبايل.
+        run: |
+          for i in 1 2 3; do
+            flutter build apk --release --split-per-abi \
+              --target-platform android-arm,android-arm64 \
+              --build-name=${{ steps.v.outputs.version }} \
+              --build-number=${{ github.run_number }} \
+              --dart-define=APP_VERSION=${{ steps.v.outputs.version }} \
+              --dart-define=BUILD_NUMBER=${{ github.run_number }} && break
+            [ "$i" = 3 ] && exit 1
+            echo "::warning::فشل البناء (محاولة $i)، إعادة بعد دقيقة"; sleep 60
+          done
 
       - name: تسمية الملف
         # نسخة لكل نوع معالج بدل نسخة واحدة ضخمة: الملف أصغر بكثير.
