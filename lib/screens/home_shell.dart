@@ -8,10 +8,11 @@ import '../state/account.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/story_card.dart';
-import 'categories_screen.dart';
 import 'home_screen.dart';
 import 'library_screen.dart';
 import 'more_screen.dart';
+import 'world_screen.dart';
+import 'worlds_screen.dart';
 
 /// الهيكل الرئيسي: أربع تبويبات وشريط سفلي، والمشغّل المصغّر فوقه.
 class HomeShell extends StatefulWidget {
@@ -23,7 +24,6 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   int tab = 0;
-  String? worldId;
 
   @override
   void initState() {
@@ -58,14 +58,11 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     if (mounted) UpdateService.checkAndPrompt(context);
   }
 
-  void _openWorld(String id) => setState(() {
-        worldId = id;
-        tab = 1;
-      });
+  void _openWorld(String id) => Navigator.of(context).push(fadeRoute(WorldScreen(worldId: id)));
 
   static const _items = [
     AtheerNavItem(icon: Icons.home_outlined, activeIcon: Icons.home_rounded, label: 'الرئيسية'),
-    AtheerNavItem(icon: Icons.auto_awesome_mosaic_outlined, activeIcon: Icons.auto_awesome_mosaic_rounded, label: 'الأقسام'),
+    AtheerNavItem(icon: Icons.auto_awesome_mosaic_outlined, activeIcon: Icons.auto_awesome_mosaic_rounded, label: 'العوالم'),
     AtheerNavItem(icon: Icons.bookmarks_outlined, activeIcon: Icons.bookmarks_rounded, label: 'مكتبتي'),
     AtheerNavItem(icon: Icons.more_horiz_rounded, activeIcon: Icons.more_horiz_rounded, label: 'المزيد'),
   ];
@@ -74,7 +71,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     final pages = [
       HomeScreen(onOpenWorld: _openWorld),
-      CategoriesScreen(worldId: worldId, onSelect: (id) => setState(() => worldId = id)),
+      const WorldsScreen(),
       const LibraryScreen(),
       const MoreScreen(),
     ];

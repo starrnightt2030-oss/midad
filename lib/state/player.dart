@@ -1,7 +1,12 @@
 import 'dart:async';
 
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import 'package:just_audio/just_audio.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config.dart';
 import '../data/repository.dart';
@@ -44,6 +49,7 @@ class PlayerController extends ChangeNotifier {
   }
 
   final AudioPlayer _voice = AudioPlayer();
+  final AudioPlayer _music = AudioPlayer();
   final AudioPlayer _amb = AudioPlayer();
   final List<StreamSubscription> _subs = [];
 
@@ -57,8 +63,22 @@ class PlayerController extends ChangeNotifier {
   Duration position = Duration.zero;
   Duration duration = Duration.zero;
   double speed = 1.0;
+  /// المؤثر الصوتي الحالي (مطر، بحر...). اختياري ومغلق افتراضيًا.
   Ambience? ambience;
-  double ambienceVolume = 0.22;
+  double ambienceVolume = 0.25;
+
+  /// موسيقى الخلفية الحالية، وطريقة اختيارها: auto (حسب القصة) | off | معرّف مقطوعة.
+  Ambience? music;
+  String musicMode = 'auto';
+  double musicVolume = 0.32;
+  bool musicLoading = false;
+
+  /// يختار الموسيقى المناسبة لقصة (يضبطه main حسب المشهد ونوع القصة).
+  Ambience? Function(Work w)? autoMusic;
+
+  static const _kMusicMode = 'atheer.music.mode';
+  static const _kMusicVol = 'atheer.music.volume';
+  static const _kFxVol = 'atheer.fx.volume';
   DateTime? sleepAt;
 
   int lineIndex = 0;
@@ -163,6 +183,7 @@ class PlayerController extends ChangeNotifier {
     notifyListeners();
     _syncItem();
     _syncState();
+    unawaited(_applyMusic());
     if (autoplay) play();
   }
 
@@ -190,14 +211,25 @@ class PlayerController extends ChangeNotifier {
     } else {
       _voice.play();
     }
-    if (ambience != null) _amb.play();
+    _layers(true);
+  }
+
+  /// الموسيقى والمؤثر يتبعان صوت الراوي (تشغيل/إيقاف من أي مكان، حتى من الإشعار).
+  void _layers(bool on) {
+    if (on) {
+      if (ambience != null) _amb.play();
+      if (music != null) _music.play();
+    } else {
+      _amb.pause();
+      _music.pause();
+    }
   }
 
   void pause() {
     _setPlaying(false);
     _demoTimer?.cancel();
     if (!demo) _voice.pause();
-    _amb.pause();
+    _layers(false);
   }
 
   void toggle() => playing ? pause() : play();
@@ -236,34 +268,166 @@ class PlayerController extends ChangeNotifier {
     _syncState();
   }
 
-  Future<void> setAmbience(Ambience? a) async {
+  /// يجهّز ملف صوت خلفية: من داخل التطبيق، أو من الإنترنت مع حفظه على الجهاز
+  /// (أول مرة يُبث مباشرة، وبعدها يعمل بدون إنترنت).
+  Future<void> _load(AudioPlayer pl, Ambience a) async {
+    final r = repo.resolve(a.file);
+    if (!r.remote) {
+      try {
+        await pl.setAsset(r.path);
+      } catch (_) {
+        await pl.setAsset('${AppConfig.bundledContentBase}${a.file}');
+      }
+      return;
+    }
+    final f = await _cacheFile(a, r.path);
+    if (f != null && f.existsSync() && f.lengthSync() > 1024) {
+      await pl.setFilePath(f.path);
+      return;
+    }
+    await pl.setUrl(r.path);
+    if (f != null) unawaited(_download(r.path, f));
+  }
+
+  Future<File?> _cacheFile(Ambience a, String url) async {
+    try {
+      final dir = Directory('${(await getApplicationSupportDirectory()).path}/ambience');
+      if (!dir.existsSync()) dir.createSync(recursive: true);
+      return File('${dir.path}/${a.id}-${url.hashCode.toUnsigned(32)}.m4a');
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _download(String url, File f) async {
+    try {
+      final res = await http.get(Uri.parse(url)).timeout(const Duration(minutes: 2));
+      if (res.statusCode != 200 || res.bodyBytes.length < 1024) return;
+      final tmp = File('${f.path}.part');
+      await tmp.writeAsBytes(res.bodyBytes, flush: true);
+      await tmp.rename(f.path);
+    } catch (e) {
+      debugPrint('ambience cache failed: $e');
+    }
+  }
+
+  /// المؤثر الصوتي (مطر، بحر...). null = بدون.
+  Future<void> setEffect(Ambience? a) async {
     ambience = a;
     notifyListeners();
     await _amb.stop();
     if (a == null) return;
     try {
-      final r = repo.resolve(a.file);
-      try {
-        if (r.remote) {
-          await _amb.setUrl(r.path);
-        } else {
-          await _amb.setAsset(r.path);
-        }
-      } catch (_) {
-        await _amb.setAsset('${AppConfig.bundledContentBase}${a.file}');
-      }
+      await _load(_amb, a);
       await _amb.setLoopMode(LoopMode.one);
       await _amb.setVolume(ambienceVolume);
-      if (playing) _amb.play();
+      if (playing && ambience?.id == a.id) _amb.play();
     } catch (e) {
-      debugPrint('ambience failed: $e');
+      debugPrint('effect failed: $e');
+      if (ambience?.id == a.id) {
+        ambience = null;
+        notifyListeners();
+      }
     }
   }
 
-  void setAmbienceVolume(double v) {
+  /// الاسم القديم (للتوافق).
+  Future<void> setAmbience(Ambience? a) => setEffect(a);
+
+  void setEffectVolume(double v) {
     ambienceVolume = v;
     _amb.setVolume(v);
     notifyListeners();
+    _savePrefs();
+  }
+
+  void setAmbienceVolume(double v) => setEffectVolume(v);
+
+  /// يختار طريقة الموسيقى: 'auto' حسب القصة، 'off' بدون، أو معرّف مقطوعة بعينها.
+  Future<void> setMusicMode(String mode) async {
+    musicMode = mode;
+    _savePrefs();
+    await _applyMusic();
+  }
+
+  /// الموسيقى المناسبة للقصة الحالية حسب الإعداد.
+  Ambience? get musicTarget {
+    final w = work;
+    if (musicMode == 'off' || w == null) return null;
+    final list = repo.catalog?.ambience ?? const <Ambience>[];
+    if (musicMode != 'auto') {
+      for (final a in list) {
+        if (a.id == musicMode && a.isMusic) return a;
+      }
+    }
+    return autoMusic?.call(w);
+  }
+
+  Future<void> _applyMusic() async {
+    final a = musicTarget;
+    if (a?.id == music?.id && (a == null || _music.audioSource != null)) {
+      if (a != null && playing) _music.play();
+      return;
+    }
+    music = a;
+    musicLoading = a != null;
+    notifyListeners();
+    await _music.stop();
+    if (a == null) return;
+    try {
+      await _load(_music, a);
+      await _music.setLoopMode(LoopMode.one);
+      await _music.setVolume(musicVolume);
+      if (music?.id != a.id) return;
+      if (playing) _music.play();
+    } catch (e) {
+      debugPrint('music failed: $e');
+      // بدون إنترنت والمقطوعة لم تُحفظ بعد: نرجع للموسيقى المدمجة.
+      final fallback = (repo.catalog?.ambience ?? const <Ambience>[])
+          .where((x) => x.isMusic && !repo.isRemote(x.file))
+          .firstOrNull;
+      if (music?.id == a.id && fallback != null && fallback.id != a.id) {
+        music = fallback;
+        try {
+          await _music.setAsset(repo.resolve(fallback.file).path);
+          await _music.setLoopMode(LoopMode.one);
+          await _music.setVolume(musicVolume);
+          if (playing) _music.play();
+        } catch (_) {
+          music = null;
+        }
+      } else if (music?.id == a.id) {
+        music = null;
+      }
+    } finally {
+      musicLoading = false;
+      notifyListeners();
+    }
+  }
+
+  void setMusicVolume(double v) {
+    musicVolume = v;
+    _music.setVolume(v);
+    notifyListeners();
+    _savePrefs();
+  }
+
+  Future<void> loadPrefs() async {
+    try {
+      final p = await SharedPreferences.getInstance();
+      musicMode = p.getString(_kMusicMode) ?? 'auto';
+      musicVolume = p.getDouble(_kMusicVol) ?? musicVolume;
+      ambienceVolume = p.getDouble(_kFxVol) ?? ambienceVolume;
+    } catch (_) {}
+  }
+
+  Future<void> _savePrefs() async {
+    try {
+      final p = await SharedPreferences.getInstance();
+      await p.setString(_kMusicMode, musicMode);
+      await p.setDouble(_kMusicVol, musicVolume);
+      await p.setDouble(_kFxVol, ambienceVolume);
+    } catch (_) {}
   }
 
   /// مدة الخفوت التدريجي قبل الإيقاف (حتى لا يوقظ التوقف المفاجئ النائم).
@@ -292,11 +456,13 @@ class PlayerController extends ChangeNotifier {
       final k = (1 - step / _fadeSteps).clamp(0.0, 1.0);
       _voice.setVolume(k);
       _amb.setVolume(ambienceVolume * k);
+      _music.setVolume(musicVolume * k);
       if (step >= _fadeSteps) {
         t.cancel();
         pause();
         _voice.setVolume(1);
         _amb.setVolume(ambienceVolume);
+        _music.setVolume(musicVolume);
         sleepAt = null;
         notifyListeners();
       }
@@ -309,9 +475,11 @@ class PlayerController extends ChangeNotifier {
     _fadeTimer = null;
     _voice.setVolume(1);
     _amb.setVolume(ambienceVolume);
+    _music.setVolume(musicVolume);
   }
 
   void _setPlaying(bool v) {
+    if (v != playing) _layers(v);
     playing = v;
     notifyListeners();
     _syncState();
@@ -331,6 +499,7 @@ class PlayerController extends ChangeNotifier {
   Future<void> _stopAll() async {
     _demoTimer?.cancel();
     playing = false;
+    _layers(false);
     try {
       await _voice.stop();
     } catch (_) {}
@@ -346,6 +515,7 @@ class PlayerController extends ChangeNotifier {
     _fadeTimer?.cancel();
     _voice.dispose();
     _amb.dispose();
+    _music.dispose();
     super.dispose();
   }
 }

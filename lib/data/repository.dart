@@ -54,6 +54,14 @@ class ContentRepository extends ChangeNotifier {
     return body == 'null' ? null : body;
   }
 
+  final Set<String> _counted = {};
+
+  /// يعدّ مرة استماع للقصة (مرة واحدة لكل قصة في كل تشغيل للتطبيق) لـ«الأكثر استماعًا».
+  void countPlay(String workId) {
+    if (!_hasSupabase || !_counted.add(workId)) return;
+    _rpc('count_play', {'p_work': workId}).catchError((_) => null);
+  }
+
   /// يجلب الفهرس من Supabase. القاعدة الفارغة فهرس صحيح (بدون قصص بعد).
   Future<String?> _fetchRemote() async {
     if (!_hasSupabase) return null;
@@ -79,9 +87,15 @@ class ContentRepository extends ChangeNotifier {
 
   Future<void> _apply(String body, String src) async {
     var c = Catalog.fromJson(jsonDecode(body) as Map<String, dynamic>);
-    if (c.ambience.isEmpty) {
-      c = Catalog(version: c.version, worlds: c.worlds, works: c.works, ambience: await _bundledAmbience());
-    }
+    // الأجواء المدمجة دائمًا، وما يُضاف من اللوحة يكمّلها (أو يستبدل نفس المعرّف).
+    final bundled = await _bundledAmbience();
+    final remoteIds = c.ambience.map((a) => a.id).toSet();
+    c = Catalog(
+      version: c.version,
+      worlds: c.worlds,
+      works: c.works,
+      ambience: [...bundled.where((a) => !remoteIds.contains(a.id)), ...c.ambience],
+    );
     catalog = c;
     source = src;
     // الأغلفة والصوت روابط كاملة؛ المسارات النسبية (الأجواء) من داخل التطبيق.

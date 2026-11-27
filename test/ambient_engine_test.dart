@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:atheer/ambient/ambient_scene_engine.dart';
+import 'package:atheer/models.dart';
 import 'package:flutter/material.dart' show Offset, Size;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -110,6 +111,34 @@ void main() {
       expect(File('content/ambience/${AmbientAudioMixer.sounds[s]}.m4a').existsSync(), isTrue);
     }
     expect(AmbientAudioMixer.maxVolume, lessThan(1));
+  });
+
+  group('موسيقى الخلفية', () {
+    final cat = Catalog.fromJson(jsonDecode(File('content/catalog.json').readAsStringSync()) as Map<String, dynamic>);
+    final music = cat.ambience.where((a) => a.isMusic).toList();
+    Work work(String title, {String kind = '', String desc = ''}) =>
+        Work(id: title, worldId: 'w', title: title, kind: kind, description: desc, art: 'storm', narrator: '', minutes: 5, chapters: const []);
+
+    test('أكتر من مقطوعة، وكل ملف موجود في المستودع', () {
+      expect(music.length, greaterThanOrEqualTo(6));
+      expect(cat.ambience.where((a) => !a.isMusic).length, greaterThanOrEqualTo(10));
+      for (final a in cat.ambience) {
+        final path = a.file.startsWith('http') ? a.file.split('/main/').last : 'content/${a.file}';
+        expect(File(path).existsSync(), isTrue, reason: a.file);
+      }
+      // مقطوعة واحدة على الأقل داخل التطبيق تعمل بدون إنترنت.
+      expect(music.where((a) => !a.file.startsWith('http')), isNotEmpty);
+    });
+
+    test('الاختيار حسب نوع القصة', () {
+      expect(AmbientAudioMixer.pickMusic(work('حدوتة قبل النوم للأطفال'), cat.ambience)!.moods, anyOf(contains('kids'), contains('sleep')));
+      expect(AmbientAudioMixer.pickMusic(work('سر القصر', kind: 'غموض'), cat.ambience)!.id, 'mystery');
+      expect(AmbientAudioMixer.pickMusic(work('حكاية من ألف ليلة'), cat.ambience)!.id, 'oriental');
+      expect(AmbientAudioMixer.pickMusic(work('عنوان عادي'), cat.ambience)!.id, 'calm');
+      // نفس القصة تأخذ نفس الموسيقى دائمًا.
+      final w = work('رحلة الأمل');
+      expect(AmbientAudioMixer.pickMusic(w, cat.ambience)!.id, AmbientAudioMixer.pickMusic(w, cat.ambience)!.id);
+    });
   });
 
   test('الشيدر مسجل في pubspec', () {
