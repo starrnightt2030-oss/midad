@@ -308,7 +308,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
             IconButton(
               tooltip: 'اختيار الأجواء',
               onPressed: () => _ambience(context, p, scene),
-              icon: Icon(Icons.landscape_rounded, color: p.ambience != null ? gold : null),
+              icon: Icon(Icons.landscape_rounded, color: p.ambience != null || p.music != null ? gold : null),
             ),
             IconButton(
                 tooltip: 'قراءة حية',
@@ -364,7 +364,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
   /// اختيار الأجواء: المشهد الحي، وضع الحركة، والصوت المحيطي (مستقل عن صوت الراوي).
   void _ambience(BuildContext context, PlayerController p, AmbientScene? current) {
     final list = context.read<ContentRepository>().catalog?.ambience ?? [];
-    final suggested = AmbientAudioMixer.suggestion(current, list);
+    final music = list.where((a) => a.isMusic).toList();
+    final effects = list.where((a) => !a.isMusic).toList();
+    final suggested = AmbientAudioMixer.suggestion(current, effects);
     IconData ic(String n) => switch (n) {
           'rain' => Icons.water_drop_outlined,
           'sea' => Icons.waves_rounded,
@@ -373,6 +375,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
           'forest' => Icons.forest_outlined,
           'wind' => Icons.air_rounded,
           'stream' => Icons.water_rounded,
+          'birds' => Icons.flutter_dash,
+          'thunder' => Icons.thunderstorm_outlined,
+          'softnoise' => Icons.graphic_eq_rounded,
+          'lullaby' => Icons.bedtime_outlined,
+          'oriental' => Icons.mosque_outlined,
+          'strings' => Icons.favorite_border_rounded,
+          'harp' => Icons.auto_awesome_outlined,
+          'mystery' => Icons.travel_explore_rounded,
+          'morning' => Icons.wb_sunny_outlined,
+          'piano' => Icons.piano,
           _ => Icons.music_note_rounded,
         };
     showModalBottomSheet(
@@ -462,11 +474,33 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   const SizedBox(height: 4),
                   Text(sel.quality.hint, style: MidadText.ui(size: 11, color: Colors.white54)),
                   const SizedBox(height: 18),
-                  Text('صوت محيطي (اختياري)', style: MidadText.ui(size: 13, color: Colors.white70)),
+                  Text('موسيقى الخلفية', style: MidadText.ui(size: 13, color: Colors.white70)),
+                  const SizedBox(height: 8),
+                  Wrap(spacing: 10, runSpacing: 10, children: [
+                    ChoiceChip(
+                      avatar: const Icon(Icons.auto_awesome_rounded, size: 18),
+                      label: Text(p.musicMode == 'auto' && p.music != null ? 'تلقائي: ${p.music!.name}' : 'تلقائي'),
+                      selected: p.musicMode == 'auto',
+                      onSelected: (_) => p.setMusicMode('auto'),
+                    ),
+                    ChoiceChip(label: const Text('بدون'), selected: p.musicMode == 'off', onSelected: (_) => p.setMusicMode('off')),
+                    for (final a in music)
+                      ChoiceChip(
+                        avatar: Icon(ic(a.icon), size: 18),
+                        label: Text(a.name),
+                        selected: p.musicMode == a.id,
+                        onSelected: (_) => p.setMusicMode(a.id),
+                      ),
+                  ]),
+                  if (p.musicLoading)
+                    const Padding(padding: EdgeInsets.only(top: 8), child: LinearProgressIndicator(minHeight: 2)),
+                  _volume(p.musicVolume, p.setMusicVolume, enabled: p.musicMode != 'off'),
+                  const SizedBox(height: 14),
+                  Text('مؤثرات صوتية (تشتغل مع الموسيقى)', style: MidadText.ui(size: 13, color: Colors.white70)),
                   const SizedBox(height: 8),
                   Wrap(spacing: 10, runSpacing: 10, children: [
                     ChoiceChip(label: const Text('بدون'), selected: p.ambience == null, onSelected: (_) => AmbientAudioMixer.play(p, null)),
-                    for (final a in list)
+                    for (final a in effects)
                       ChoiceChip(
                         avatar: Icon(a.id == suggested?.id ? Icons.auto_awesome_rounded : ic(a.icon), size: 18),
                         label: Text(a.name),
@@ -474,20 +508,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                         onSelected: (_) => AmbientAudioMixer.play(p, a),
                       ),
                   ]),
-                  const SizedBox(height: 10),
-                  Row(children: [
-                    const Icon(Icons.volume_down_rounded),
-                    Expanded(
-                      child: Slider(
-                        value: p.ambienceVolume.clamp(0.05, AmbientAudioMixer.maxVolume),
-                        min: 0.05,
-                        max: AmbientAudioMixer.maxVolume,
-                        onChanged: (v) => AmbientAudioMixer.volume(p, v),
-                      ),
-                    ),
-                    const Icon(Icons.volume_up_rounded),
-                  ]),
-                  Text('مستوى الصوت المحيطي مستقل عن صوت الراوي', style: MidadText.ui(size: 11, color: Colors.white54)),
+                  _volume(p.ambienceVolume, (v) => AmbientAudioMixer.volume(p, v), enabled: p.ambience != null),
+                  Text('مستوى الموسيقى والمؤثرات مستقل عن صوت الراوي', style: MidadText.ui(size: 11, color: Colors.white54)),
                 ]),
               ),
             );
@@ -496,6 +518,19 @@ class _PlayerScreenState extends State<PlayerScreen> {
       ),
     );
   }
+
+  Widget _volume(double v, ValueChanged<double> onChanged, {bool enabled = true}) => Row(children: [
+        const Icon(Icons.volume_down_rounded),
+        Expanded(
+          child: Slider(
+            value: v.clamp(0.05, AmbientAudioMixer.maxVolume),
+            min: 0.05,
+            max: AmbientAudioMixer.maxVolume,
+            onChanged: enabled ? (x) => onChanged(x.clamp(0.05, AmbientAudioMixer.maxVolume)) : null,
+          ),
+        ),
+        const Icon(Icons.volume_up_rounded),
+      ]);
 
   void _sleep(BuildContext context, PlayerController p) {
     showModalBottomSheet(

@@ -1,54 +1,156 @@
 {
-  "version": "2026.11.23",
+  "version": "2026.11.27",
   "worlds": [],
   "ambience": [
     {
       "id": "calm",
-      "name": "موسيقى هادئة",
+      "name": "بيانو هادئ",
       "icon": "music",
-      "file": "ambience/calm.m4a"
+      "file": "ambience/calm.m4a",
+      "moods": [
+        "meditation",
+        "rain_winter",
+        "default"
+      ],
+      "kind": "music"
+    },
+    {
+      "id": "lullaby",
+      "name": "تهويدة النوم",
+      "icon": "lullaby",
+      "file": "https://raw.githubusercontent.com/starrnightt2030-oss/midad/main/content/music/lullaby.m4a",
+      "moods": [
+        "sleep",
+        "kids"
+      ],
+      "kind": "music"
+    },
+    {
+      "id": "oriental",
+      "name": "ليالي شرقية",
+      "icon": "oriental",
+      "file": "https://raw.githubusercontent.com/starrnightt2030-oss/midad/main/content/music/oriental.m4a",
+      "moods": [
+        "spiritual",
+        "heritage"
+      ],
+      "kind": "music"
+    },
+    {
+      "id": "strings",
+      "name": "أوتار دافئة",
+      "icon": "strings",
+      "file": "https://raw.githubusercontent.com/starrnightt2030-oss/midad/main/content/music/strings.m4a",
+      "moods": [
+        "wisdom",
+        "drama",
+        "rain_winter"
+      ],
+      "kind": "music"
+    },
+    {
+      "id": "harp",
+      "name": "حلم القيثارة",
+      "icon": "harp",
+      "file": "https://raw.githubusercontent.com/starrnightt2030-oss/midad/main/content/music/harp.m4a",
+      "moods": [
+        "fantasy",
+        "nature"
+      ],
+      "kind": "music"
+    },
+    {
+      "id": "mystery",
+      "name": "غموض لطيف",
+      "icon": "mystery",
+      "file": "https://raw.githubusercontent.com/starrnightt2030-oss/midad/main/content/music/mystery.m4a",
+      "moods": [
+        "mystery",
+        "adventure"
+      ],
+      "kind": "music"
+    },
+    {
+      "id": "morning",
+      "name": "صباح مشرق",
+      "icon": "morning",
+      "file": "https://raw.githubusercontent.com/starrnightt2030-oss/midad/main/content/music/morning.m4a",
+      "moods": [
+        "hope",
+        "kids",
+        "nature"
+      ],
+      "kind": "music"
     },
     {
       "id": "rain",
       "name": "مطر",
       "icon": "rain",
-      "file": "ambience/rain.m4a"
+      "file": "ambience/rain.m4a",
+      "kind": "effect"
     },
     {
       "id": "sea",
       "name": "بحر",
       "icon": "sea",
-      "file": "ambience/sea.m4a"
+      "file": "ambience/sea.m4a",
+      "kind": "effect"
     },
     {
       "id": "night",
-      "name": "ليل",
+      "name": "ليل وصراصير",
       "icon": "night",
-      "file": "ambience/night.m4a"
+      "file": "ambience/night.m4a",
+      "kind": "effect"
     },
     {
       "id": "forest",
       "name": "غابة",
       "icon": "forest",
-      "file": "ambience/forest.m4a"
+      "file": "ambience/forest.m4a",
+      "kind": "effect"
     },
     {
       "id": "fire",
       "name": "مدفأة",
       "icon": "fire",
-      "file": "ambience/fire.m4a"
+      "file": "ambience/fire.m4a",
+      "kind": "effect"
     },
     {
       "id": "wind",
       "name": "رياح",
       "icon": "wind",
-      "file": "ambience/wind.m4a"
+      "file": "ambience/wind.m4a",
+      "kind": "effect"
     },
     {
       "id": "stream",
       "name": "جدول ماء",
       "icon": "stream",
-      "file": "ambience/stream.m4a"
+      "file": "ambience/stream.m4a",
+      "kind": "effect"
+    },
+    {
+      "id": "birds",
+      "name": "عصافير الصباح",
+      "icon": "birds",
+      "file": "ambience/birds.m4a",
+      "kind": "effect"
+    },
+    {
+      "id": "thunder",
+      "name": "مطر ورعد بعيد",
+      "icon": "thunder",
+      "file": "ambience/thunder.m4a",
+      "kind": "effect"
+    },
+    {
+      "id": "softnoise",
+      "name": "ضوضاء ناعمة للنوم",
+      "icon": "softnoise",
+      "file": "ambience/softnoise.m4a",
+      "kind": "effect"
     }
   ],
   "works": []
