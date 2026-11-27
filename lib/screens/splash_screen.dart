@@ -12,7 +12,7 @@ import '../theme.dart';
 /// شاشة البداية: صوت يقول «حين تهدأ الحياة... وتتحدث الكلمات» والجملة تنكتب
 /// كلمة كلمة مع الصوت، وبعدها «أثير الكلمات» واسم المطوّر بإضاءة نيون.
 ///
-/// ملف الصوت: ضع التسجيل في `assets/sounds/intro_voice.mp3` (أو `.m4a`).
+/// ملف الصوت: `assets/sounds/intro_voice.m4a` (أو `.mp3`)، ويقول الجملة ثم «أثير الكلمات».
 /// لو الملف مش موجود، الشاشة تشتغل بتوقيت افتراضي ونغمة البداية القديمة.
 /// التزامن مع الصوت يتم من موضع التشغيل الفعلي، فأي تأخير في بدء الصوت لا يفسده.
 class CinematicSplash extends StatefulWidget {
@@ -27,10 +27,14 @@ class CinematicSplash extends StatefulWidget {
 const _line1 = ['حين', 'تهدأ', 'الحياة...'];
 const _line2 = ['وتتحدث', 'الكلمات'];
 
-/// توقيت بداية كل كلمة بالملّي ثانية داخل ملف الصوت (بنفس ترتيب الكلمات).
-/// لو `null` تتوزع الكلمات تلقائيًا على مدة الصوت حسب طول كل كلمة.
-/// تُضبط بدقة بعد وصول التسجيل الحقيقي.
-const List<int>? _wordCuesMs = null;
+/// توقيت بداية كل كلمة بالملّي ثانية داخل ملف الصوت (بنفس ترتيب الكلمات)،
+/// مقاس من موجة التسجيل الفعلي ومقدَّم ~100ms عشان الكلمة تبدأ تظهر مع نطقها.
+/// لو غيّرت التسجيل، خليها `null` فتتوزع الكلمات تلقائيًا على مدته.
+const List<int>? _wordCuesMs = [180, 860, 1400, 3460, 4900];
+
+/// داخل التسجيل: لحظة نطق «أثير الكلمات» (يولع النيون معها) ونهاية الصوت (يظهر اسم المطوّر).
+const _voiceBrandMs = 7200;
+const _voiceDevMs = 8900;
 
 /// مدة الجملة لو مفيش ملف صوت.
 const _defaultPhraseMs = 3800;
@@ -56,7 +60,7 @@ class _CinematicSplashState extends State<CinematicSplash> with SingleTickerProv
   static const _brandGapMs = 450; // بعد نهاية الجملة
   static const _brandFlickerMs = 1100;
   static const _devGapMs = 700;
-  static const _holdMs = 1800;
+  static const _holdMs = 1200;
 
   @override
   void initState() {
@@ -77,7 +81,7 @@ class _CinematicSplashState extends State<CinematicSplash> with SingleTickerProv
     } catch (_) {}
 
     if (sound) {
-      for (final path in const ['assets/sounds/intro_voice.mp3', 'assets/sounds/intro_voice.m4a']) {
+      for (final path in const ['assets/sounds/intro_voice.m4a', 'assets/sounds/intro_voice.mp3']) {
         try {
           final a = AudioPlayer();
           final d = await a.setAsset(path);
@@ -96,7 +100,7 @@ class _CinematicSplashState extends State<CinematicSplash> with SingleTickerProv
         } catch (_) {}
       }
     }
-    _cues = _wordCuesMs ?? _autoCues(_phraseMs);
+    _cues = (_voice != null ? _wordCuesMs : null) ?? _autoCues(_phraseMs);
     if (!mounted) return;
     _started = true;
     _ticker.start();
@@ -148,9 +152,10 @@ class _CinematicSplashState extends State<CinematicSplash> with SingleTickerProv
   }
 
   int get _phraseEnd => _leadInMs + _phraseMs;
-  int get _brandStart => _phraseEnd + _brandGapMs;
-  int get _devStart => _brandStart + _devGapMs;
-  int get _endMs => _devStart + _brandFlickerMs + _holdMs;
+  bool get _synced => _voice != null && _wordCuesMs != null;
+  int get _brandStart => _synced ? _leadInMs + _voiceBrandMs : _phraseEnd + _brandGapMs;
+  int get _devStart => _synced ? _leadInMs + _voiceDevMs : _brandStart + _devGapMs;
+  int get _endMs => math.max(_devStart + _brandFlickerMs + _holdMs, _phraseEnd + 400);
 
   void _finish() {
     if (_done) return;
