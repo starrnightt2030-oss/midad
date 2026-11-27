@@ -1,0 +1,32 @@
+name: فحص التزامن
+
+# تشخيص فقط: يطبع توقيتات فصل وبيانات ملف صوته، بدون أي تعديل.
+on:
+  workflow_dispatch:
+    inputs:
+      title:
+        description: 'عنوان القصة'
+        required: true
+        default: 'حكايتي'
+  push:
+    branches: ['claude/**']
+    paths: ['tools/inspect_sync.py', '.github/workflows/inspect-sync.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: https://scrynlokpplwolbltghf.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - run: python tools/inspect_sync.py "$TITLE"
+        env:
+          TITLE: ${{ github.event.inputs.title || 'حكايتي' }}
