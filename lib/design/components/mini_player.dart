@@ -58,7 +58,10 @@ class AtheerMiniPlayer extends StatelessWidget {
                                 SizedBox(
                                   width: 46,
                                   height: 46,
-                                  child: CoverArt(art: w.art, url: w.cover, radius: BorderRadius.circular(AtheerRadius.sm)),
+                                  child: Hero(
+                                    tag: coverHeroTag,
+                                    child: ClipRRect(borderRadius: BorderRadius.circular(AtheerRadius.sm), child: CoverArt(art: w.art, url: w.cover)),
+                                  ),
                                 ),
                                 const SizedBox(width: AtheerSpacing.md),
                                 Expanded(
@@ -75,12 +78,14 @@ class AtheerMiniPlayer extends StatelessWidget {
                                     ],
                                   ]),
                                 ),
-                                AtheerIconButton(
-                                  icon: Icons.replay_10_rounded,
-                                  tooltip: 'رجوع ١٠ ثوانٍ',
-                                  style: AtheerIconButtonStyle.plain,
-                                  size: 40,
-                                  onPressed: () => p.skip(-10),
+                                Semantics(
+                                  button: true,
+                                  label: 'رجوع ١٥ ثانية',
+                                  excludeSemantics: true,
+                                  child: AtheerPressable(
+                                    onTap: () => p.skip(-15),
+                                    child: const SizedBox(width: 44, height: 48, child: Center(child: AtheerSkipIcon(forward: false, size: 26))),
+                                  ),
                                 ),
                                 AtheerIconButton(
                                   icon: p.playing ? Icons.pause_rounded : Icons.play_arrow_rounded,

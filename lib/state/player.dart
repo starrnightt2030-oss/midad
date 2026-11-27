@@ -259,6 +259,16 @@ class PlayerController extends ChangeNotifier {
     seekToLine(seconds > s.lines[lineIndex].start + 1.5 ? lineIndex : lineIndex - 1);
   }
 
+  /// سرعات التشغيل المتاحة.
+  static const speeds = [0.75, 0.9, 1.0, 1.15, 1.25, 1.5, 1.75, 2.0];
+
+  void setSpeed(double v) {
+    speed = v;
+    _voice.setSpeed(speed);
+    notifyListeners();
+    _syncState();
+  }
+
   void cycleSpeed() {
     const speeds = [0.8, 1.0, 1.25, 1.5];
     final i = speeds.indexOf(speed);

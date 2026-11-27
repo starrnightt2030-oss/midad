@@ -14,6 +14,7 @@ import 'package:atheer/state/player.dart';
 import 'package:atheer/theme.dart';
 import 'package:atheer/widgets/spoken_phrase.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -24,7 +25,23 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// وأن الأدوات تختفي بعد ٨ ثوانٍ من عدم التفاعل وتعود باللمس.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  MidadText.useGoogleFonts = false;
+  final fonts = Platform.environment['FONTS_DIR'];
+  MidadText.useGoogleFonts = fonts != null;
+  setUpAll(() async {
+    if (fonts == null) return;
+    final families = <String, FontLoader>{};
+    for (final f in Directory(fonts).listSync().whereType<File>().where((f) => f.path.endsWith('.ttf'))) {
+      final fam = f.uri.pathSegments.last.split('-').first;
+      families.putIfAbsent(fam, () => FontLoader(fam)).addFont(Future.value(ByteData.sublistView(f.readAsBytesSync())));
+    }
+    for (final l in families.values) {
+      await l.load();
+    }
+    final icons = File('${Platform.environment['FLUTTER_ROOT'] ?? ''}/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf');
+    if (icons.existsSync()) {
+      await (FontLoader('MaterialIcons')..addFont(Future.value(ByteData.sublistView(icons.readAsBytesSync())))).load();
+    }
+  });
   final out = Platform.environment['AMBIENT_FRAMES'];
 
   Future<void> shot(WidgetTester tester, GlobalKey key, String name) async {
@@ -146,7 +163,7 @@ void main() {
     final key = GlobalKey();
     await tester.pumpWidget(app(const PlayerScreen(), sel, p, lib, repo, key));
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.byTooltip('اختيار الأجواء'));
+    await tester.tap(find.byTooltip('المشهد والأصوات المحيطية'));
     await tester.pumpAndSettle(const Duration(milliseconds: 100), EnginePhase.sendSemanticsUpdate, const Duration(seconds: 3));
     expect(find.text('موسيقى الخلفية'), findsOneWidget);
     expect(find.text('تلقائي'), findsOneWidget);
