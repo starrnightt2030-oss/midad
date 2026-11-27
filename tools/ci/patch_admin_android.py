@@ -30,4 +30,8 @@ for p in res_dst.glob('drawable*/launch_background.xml'):
 import signing
 signing.apply(APP / 'android')
 
+# تنزيل وتثبيت التحديث من داخل التطبيق
+import ota_provider
+ota_provider.apply(APP / 'android')
+
 print('admin android patched ✓')
