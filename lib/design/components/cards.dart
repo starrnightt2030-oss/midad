@@ -157,6 +157,7 @@ class AtheerProgressLine extends StatelessWidget {
       borderRadius: BorderRadius.circular(height),
       child: SizedBox(
         height: height,
+<<<<<<< HEAD
         child: LayoutBuilder(
           builder: (_, c) => Stack(children: [
             Positioned.fill(child: ColoredBox(color: Colors.white.op(0.22))),
@@ -169,6 +170,16 @@ class AtheerProgressLine extends StatelessWidget {
             ),
           ]),
         ),
+=======
+        child: Stack(children: [
+          Positioned.fill(child: ColoredBox(color: Colors.white.op(0.22))),
+          FractionallySizedBox(
+            alignment: AlignmentDirectional.centerStart,
+            widthFactor: value.clamp(0.0, 1.0),
+            child: ColoredBox(color: color ?? AtheerColors.accent),
+          ),
+        ]),
+>>>>>>> 14230554f15b2c391163dd03e4b147df5b650159
       ),
     );
   }
@@ -186,9 +197,12 @@ class AtheerCategoryCard extends StatelessWidget {
 
   /// بديل لـ [image] عند الحاجة لمزوّد صورة جاهز (ذاكرة مؤقتة، ملف منزّل...).
   final ImageProvider? imageProvider;
+<<<<<<< HEAD
 
   /// بديل جاهز للخلفية كلها (مثلًا WorldArt) يتقدّم على [image] و[imageProvider].
   final Widget? art;
+=======
+>>>>>>> 14230554f15b2c391163dd03e4b147df5b650159
   final Color color;
   final Object? heroTag;
   final VoidCallback? onTap;
@@ -202,7 +216,10 @@ class AtheerCategoryCard extends StatelessWidget {
     this.count,
     this.image,
     this.imageProvider,
+<<<<<<< HEAD
     this.art,
+=======
+>>>>>>> 14230554f15b2c391163dd03e4b147df5b650159
     this.heroTag,
     this.onTap,
     this.large = false,
@@ -211,6 +228,7 @@ class AtheerCategoryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final r = AtheerRadius.card;
+<<<<<<< HEAD
     Widget bg = art ??
         (imageProvider != null
             ? Image(
@@ -220,6 +238,16 @@ class AtheerCategoryCard extends StatelessWidget {
             : image == null
                 ? DecoratedBox(decoration: BoxDecoration(gradient: AtheerGradients.tint(color)))
                 : _image(image!));
+=======
+    Widget bg = imageProvider != null
+        ? Image(
+            image: imageProvider!,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => DecoratedBox(decoration: BoxDecoration(gradient: AtheerGradients.tint(color))))
+        : image == null
+            ? DecoratedBox(decoration: BoxDecoration(gradient: AtheerGradients.tint(color)))
+            : _image(image!);
+>>>>>>> 14230554f15b2c391163dd03e4b147df5b650159
     if (heroTag != null) bg = Hero(tag: heroTag!, child: bg);
     return Semantics(
       button: true,
