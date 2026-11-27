@@ -55,12 +55,13 @@ class _CinematicSplashState extends State<CinematicSplash> with SingleTickerProv
 
   late List<int> _cues = _autoCues(_defaultPhraseMs);
 
-  static const _leadInMs = 700; // ظهور الخلفية قبل أول كلمة
-  static const _wordFadeMs = 650;
-  static const _brandGapMs = 450; // بعد نهاية الجملة
-  static const _brandFlickerMs = 1100;
-  static const _devGapMs = 700;
-  static const _holdMs = 1200;
+  // المقدمة الكاملة بالصوت تظهر أول مرة فقط، وبعدها نسخة قصيرة (~3 ثوانٍ) بدون الصوت.
+  int _leadInMs = 700; // ظهور الخلفية قبل أول كلمة
+  int _wordFadeMs = 650;
+  int _brandGapMs = 450; // بعد نهاية الجملة
+  int _brandFlickerMs = 1100;
+  int _devGapMs = 700;
+  int _holdMs = 1200;
 
   @override
   void initState() {
@@ -75,12 +76,25 @@ class _CinematicSplashState extends State<CinematicSplash> with SingleTickerProv
 
   Future<void> _start() async {
     var sound = true;
+    var full = true;
     try {
       final prefs = await SharedPreferences.getInstance();
       sound = prefs.getBool('introSound') ?? true;
+      full = !(prefs.getBool('introFullSeen') ?? false);
+      if (full) await prefs.setBool('introFullSeen', true);
     } catch (_) {}
 
-    if (sound) {
+    if (!full) {
+      _leadInMs = 300;
+      _wordFadeMs = 450;
+      _phraseMs = 900;
+      _brandGapMs = 150;
+      _brandFlickerMs = 650;
+      _devGapMs = 350;
+      _holdMs = 650;
+    }
+
+    if (sound && full) {
       for (final path in const ['assets/sounds/intro_voice.m4a', 'assets/sounds/intro_voice.mp3']) {
         try {
           final a = AudioPlayer();
@@ -90,15 +104,15 @@ class _CinematicSplashState extends State<CinematicSplash> with SingleTickerProv
           break;
         } catch (_) {}
       }
-      if (_voice == null) {
-        // لا يوجد تسجيل بعد: النغمة القديمة كخلفية.
-        try {
-          final t = AudioPlayer();
-          await t.setAsset('assets/sounds/intro.m4a');
-          await t.setVolume(0.7);
-          _tone = t;
-        } catch (_) {}
-      }
+    }
+    if (sound && _voice == null) {
+      // المقدمة القصيرة (أو لو التسجيل مش موجود): النغمة القديمة كخلفية.
+      try {
+        final t = AudioPlayer();
+        await t.setAsset('assets/sounds/intro.m4a');
+        await t.setVolume(0.7);
+        _tone = t;
+      } catch (_) {}
     }
     _cues = (_voice != null ? _wordCuesMs : null) ?? _autoCues(_phraseMs);
     if (!mounted) return;
@@ -106,7 +120,7 @@ class _CinematicSplashState extends State<CinematicSplash> with SingleTickerProv
     _ticker.start();
     _tone?.play();
     if (_voice != null) {
-      Future.delayed(const Duration(milliseconds: _leadInMs), () {
+      Future.delayed(Duration(milliseconds: _leadInMs), () {
         if (!mounted || _done) return;
         _voice!.play();
       });
