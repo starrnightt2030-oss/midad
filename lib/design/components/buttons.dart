@@ -165,3 +165,35 @@ class AtheerIconButton extends StatelessWidget {
     );
   }
 }
+
+/// أيقونة تقديم/تأخير ١٥ ثانية (سهم دائري ورقم بداخله).
+class AtheerSkipIcon extends StatelessWidget {
+  final bool forward;
+  final double size;
+  final Color? color;
+  final int seconds;
+  const AtheerSkipIcon({super.key, required this.forward, this.size = 30, this.color, this.seconds = 15});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = color ?? AtheerColors.textPrimary;
+    const digits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+    final label = '$seconds'.split('').map((d) => digits[int.parse(d)]).join();
+    // «للأمام» في اتجاه عقارب الساعة، و«للخلف» عكسها، في كل اتجاهات الكتابة.
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(alignment: Alignment.center, children: [
+        Transform.flip(
+          flipX: forward,
+          child: Icon(Icons.replay_rounded, size: size, color: c),
+        ),
+        Padding(
+          padding: EdgeInsets.only(top: size * 0.12),
+          child: Text(label,
+              style: TextStyle(fontFamily: AtheerType.family(AtheerType.body), fontSize: size * 0.3, fontWeight: FontWeight.w700, color: c, height: 1)),
+        ),
+      ]),
+    );
+  }
+}

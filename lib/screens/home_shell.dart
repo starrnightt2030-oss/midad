@@ -10,7 +10,8 @@ import '../widgets/common.dart';
 import '../widgets/story_card.dart';
 import 'home_screen.dart';
 import 'library_screen.dart';
-import 'more_screen.dart';
+import 'journey_screen.dart';
+import 'sakina_screen.dart';
 import 'world_screen.dart';
 import 'worlds_screen.dart';
 
@@ -62,18 +63,20 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
 
   static const _items = [
     AtheerNavItem(icon: Icons.home_outlined, activeIcon: Icons.home_rounded, label: 'الرئيسية'),
-    AtheerNavItem(icon: Icons.auto_awesome_mosaic_outlined, activeIcon: Icons.auto_awesome_mosaic_rounded, label: 'العوالم'),
+    AtheerNavItem(icon: Icons.auto_awesome_mosaic_outlined, activeIcon: Icons.auto_awesome_mosaic_rounded, label: 'عوالم أثير'),
+    AtheerNavItem(icon: Icons.spa_outlined, activeIcon: Icons.spa_rounded, label: 'سكينة'),
     AtheerNavItem(icon: Icons.bookmarks_outlined, activeIcon: Icons.bookmarks_rounded, label: 'مكتبتي'),
-    AtheerNavItem(icon: Icons.more_horiz_rounded, activeIcon: Icons.more_horiz_rounded, label: 'المزيد'),
+    AtheerNavItem(icon: Icons.person_outline_rounded, activeIcon: Icons.person_rounded, label: 'رحلتي'),
   ];
 
   @override
   Widget build(BuildContext context) {
     final pages = [
-      HomeScreen(onOpenWorld: _openWorld),
+      HomeScreen(onOpenWorld: _openWorld, onOpenWorlds: () => setState(() => tab = 1)),
       const WorldsScreen(),
+      const SakinaScreen(),
       const LibraryScreen(),
-      const MoreScreen(),
+      const JourneyScreen(),
     ];
     return PopScope(
       canPop: tab == 0,

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-/// ألوان الهوية للمشاهد الحية وشاشة التشغيل السينمائية.
+/// ألوان الهوية للمشاهد الحية وشاشة التشغيل السينمائية (نفس قيم AtheerColors).
 class AmbientColors {
-  static const midnightNavy = Color(0xFF080F1E);
-  static const calmBlue = Color(0xFF192C40);
-  static const naturalTeal = Color(0xFF345653);
-  static const warmGold = Color(0xFFC8AA78);
-  static const softIvory = Color(0xFFE9E2D5);
+  static const midnightNavy = Color(0xFF090F19);
+  static const calmBlue = Color(0xFF182C40);
+  static const naturalTeal = Color(0xFF315B50);
+  static const warmGold = Color(0xFFD9BE91);
+  static const softIvory = Color(0xFFF0E8DB);
 
   /// لوح شفاف داكن بدون BackdropFilter (التمويه فوق مشهد متحرك مكلف جدًا على المعالج).
   static BoxDecoration panel({double radius = 20, double opacity = 0.42}) => BoxDecoration(

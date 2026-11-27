@@ -9,6 +9,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import '../ambient/ambient_scene_engine.dart';
 import '../ambient/ambient_style.dart';
 import '../data/repository.dart';
+import '../design/atheer_design_system.dart';
 import '../models.dart';
 import '../state/library.dart';
 import '../state/player.dart';
@@ -173,191 +174,265 @@ class _PlayerScreenState extends State<PlayerScreen> {
     final category = repo.catalog?.worldOf(w)?.name ?? w.kind;
     final line = (p.script != null && p.script!.lines.isNotEmpty) ? p.script!.lines[p.lineIndex] : null;
     final fav = lib.isFav(w.id);
-    const gold = AmbientColors.warmGold;
-    const ivory = AmbientColors.softIvory;
+    final gold = AtheerColors.accent;
+    const ivory = AtheerColors.softIvory;
+    final ambientOn = p.ambience != null || p.music != null;
 
     return SafeArea(
       child: Column(children: [
+        // الشريط العلوي.
         Padding(
-          padding: const EdgeInsets.fromLTRB(8, 6, 8, 0),
+          padding: const EdgeInsets.fromLTRB(AtheerSpacing.sm, AtheerSpacing.xs, AtheerSpacing.sm, 0),
           child: Row(children: [
-            IconButton(
-                tooltip: 'تصغير', onPressed: () => Navigator.pop(context), icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 32)),
+            AtheerIconButton(icon: Icons.keyboard_arrow_down_rounded, tooltip: 'تصغير', onPressed: () => Navigator.pop(context)),
             Expanded(
               child: Column(children: [
-                Text('تستمع الآن', style: MidadText.ui(size: 11, color: Colors.white70)),
-                Text(p.chapter?.title ?? '',
-                    maxLines: 1, overflow: TextOverflow.ellipsis, style: MidadText.ui(size: 13, weight: FontWeight.w700)),
+                Text('تستمع الآن', style: AtheerType.labelSmall(color: AtheerColors.textTertiary)),
+                const SizedBox(height: 2),
+                Text(p.chapter?.title ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: AtheerType.label()),
               ]),
             ),
-            IconButton(tooltip: 'الوضع السينمائي', onPressed: () => _setCinematic(true), icon: const Icon(Icons.movie_filter_outlined)),
-            IconButton(tooltip: 'الفصول', onPressed: () => _chapters(context, p), icon: const Icon(Icons.format_list_bulleted_rounded)),
+            AtheerIconButton(icon: Icons.movie_filter_outlined, tooltip: 'الوضع السينمائي', onPressed: () => _setCinematic(true)),
+            if (w.chapters.length > 1) AtheerIconButton(icon: Icons.format_list_bulleted_rounded, tooltip: 'الفصول', onPressed: () => _chapters(context, p)),
           ]),
         ),
         const Spacer(),
+        // لوح التحكم الزجاجي (بدون تضبيب فوق المشهد المتحرك لتوفير الطاقة).
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 22),
-          child: Row(children: [
-            SizedBox(
-              width: 58,
-              height: 58,
-              child: ClipRRect(borderRadius: BorderRadius.circular(14), child: CoverArt(art: w.art, url: w.cover)),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(w.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: MidadText.title(size: 24, color: ivory)),
-                const SizedBox(height: 2),
-                Text(
-                  [category, if (w.narrator.isNotEmpty) 'بصوت ${w.narrator}'].join(' · '),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: MidadText.ui(size: 12, color: gold),
-                ),
-              ]),
-            ),
-          ]),
-        ),
-        const SizedBox(height: 14),
-        if (line != null)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 22),
-            child: GestureDetector(
-              onTap: () => Navigator.of(context).push(fadeRoute(const LiveReadScreen())),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                decoration: AmbientColors.panel(radius: 18, opacity: 0.35),
-                child: SpokenPhrase(
-                  maxLines: 2,
-                  highlight: gold,
-                  style: MidadText.book(size: 16, color: ivory, height: 1.7),
-                ),
-              ),
-            ),
-          ),
-        const SizedBox(height: 10),
-        SizedBox(height: 34, child: SoftWaves(playing: p.playing, color: gold)),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 2, 16, 0),
-          child: Column(children: [
-            SliderTheme(
-              data: SliderTheme.of(context).copyWith(trackHeight: 3, thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7)),
-              child: Slider(
-                value: (_drag ?? p.progress).clamp(0.0, 1.0),
-                activeColor: ivory,
-                inactiveColor: Colors.white24,
-                onChanged: (v) => setState(() => _drag = v),
-                onChangeEnd: (v) {
-                  p.seek(Duration(milliseconds: (p.duration.inMilliseconds * v).round()));
-                  setState(() => _drag = null);
-                  _arm();
-                },
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                Text(fmtDuration(p.position), style: MidadText.ui(size: 11, color: Colors.white70)),
-                if (p.demo)
-                  Flexible(
-                    child: Text('عرض نصي — الصوت قريبًا',
-                        maxLines: 1, overflow: TextOverflow.ellipsis, style: MidadText.ui(size: 10, color: Colors.white54)),
+          padding: const EdgeInsets.fromLTRB(AtheerSpacing.md, 0, AtheerSpacing.md, AtheerSpacing.md),
+          child: AtheerGlassCard(
+            blur: false,
+            tint: AtheerColors.midnight,
+            fill: 0.42,
+            radius: BorderRadius.circular(AtheerRadius.xl),
+            padding: const EdgeInsets.fromLTRB(AtheerSpacing.lg, AtheerSpacing.xl, AtheerSpacing.lg, AtheerSpacing.sm),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Row(children: [
+                SizedBox(
+                  width: 60,
+                  height: 60,
+                  child: Hero(
+                    tag: AtheerMiniPlayer.coverHeroTag,
+                    child: ClipRRect(borderRadius: BorderRadius.circular(AtheerRadius.sm + 2), child: CoverArt(art: w.art, url: w.cover)),
                   ),
-                Text(fmtDuration(p.duration), style: MidadText.ui(size: 11, color: Colors.white70)),
+                ),
+                const SizedBox(width: AtheerSpacing.md + 2),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(w.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: AtheerType.h2(color: ivory)),
+                    const SizedBox(height: 3),
+                    Text(
+                      [category, if (w.narrator.isNotEmpty) 'بصوت ${w.narrator}'].where((e) => e.isNotEmpty).join(' · '),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AtheerType.bodySmall(color: gold),
+                    ),
+                  ]),
+                ),
+                AtheerIconButton(
+                  icon: fav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                  tooltip: fav ? 'إزالة من المفضلة' : 'إضافة للمفضلة',
+                  style: AtheerIconButtonStyle.plain,
+                  selected: fav,
+                  onPressed: () => lib.toggleFav(w.id),
+                ),
               ]),
-            ),
-          ]),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
-          child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            TextButton(
-              onPressed: p.cycleSpeed,
-              child: Text('${arNum(p.speed)}×', style: MidadText.ui(weight: FontWeight.w700, color: ivory)),
-            ),
-            IconButton(tooltip: 'رجوع ١٠ ثوانٍ', iconSize: 32, onPressed: () => p.skip(-10), icon: const Icon(Icons.replay_10_rounded)),
-            GestureDetector(
-              onTap: p.toggle,
-              child: Container(
-                width: 74,
-                height: 74,
-                decoration: BoxDecoration(color: ivory, shape: BoxShape.circle, boxShadow: [
-                  BoxShadow(color: Colors.black.op(0.35), blurRadius: 24, offset: const Offset(0, 10)),
-                ]),
-                child: Stack(alignment: Alignment.center, children: [
-                  Icon(p.playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                      size: 40, color: AmbientColors.midnightNavy, semanticLabel: p.playing ? 'إيقاف مؤقت' : 'تشغيل'),
-                  if (p.loadingChapter || p.buffering)
-                    const SizedBox(
-                        width: 66, height: 66, child: CircularProgressIndicator(strokeWidth: 2, color: AmbientColors.naturalTeal)),
+              if (line != null) ...[
+                const SizedBox(height: AtheerSpacing.md + 2),
+                GestureDetector(
+                  onTap: () => Navigator.of(context).push(AtheerMotion.fadeThrough(const LiveReadScreen())),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: AtheerSpacing.lg, vertical: AtheerSpacing.sm + 2),
+                    decoration: BoxDecoration(color: Colors.white.op(0.05), borderRadius: BorderRadius.circular(AtheerRadius.md)),
+                    child: SpokenPhrase(maxLines: 2, highlight: gold, style: AtheerType.quoteMedium(color: ivory).copyWith(fontSize: 17, height: 1.7)),
+                  ),
+                ),
+              ],
+              const SizedBox(height: AtheerSpacing.md),
+              SizedBox(height: 30, child: SoftWaves(playing: p.playing, color: gold)),
+              SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  trackHeight: 3,
+                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.5),
+                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+                ),
+                child: Slider(
+                  value: (_drag ?? p.progress).clamp(0.0, 1.0),
+                  activeColor: gold,
+                  inactiveColor: Colors.white.op(0.18),
+                  semanticFormatterCallback: (v) => fmtDuration(Duration(milliseconds: (p.duration.inMilliseconds * v).round())),
+                  onChanged: (v) => setState(() => _drag = v),
+                  onChangeEnd: (v) {
+                    p.seek(Duration(milliseconds: (p.duration.inMilliseconds * v).round()));
+                    setState(() => _drag = null);
+                    _arm();
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AtheerSpacing.md),
+                child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                  Text(fmtDuration(_drag == null ? p.position : Duration(milliseconds: (p.duration.inMilliseconds * _drag!).round())),
+                      style: AtheerType.labelSmall(color: AtheerColors.textSecondary)),
+                  if (p.demo)
+                    Flexible(
+                      child: Text('عرض نصي — الصوت قريبًا', maxLines: 1, overflow: TextOverflow.ellipsis, style: AtheerType.bodySmall()),
+                    ),
+                  Text(fmtDuration(p.duration), style: AtheerType.labelSmall(color: AtheerColors.textSecondary)),
                 ]),
               ),
-            ),
-            IconButton(tooltip: 'تقديم ١٠ ثوانٍ', iconSize: 32, onPressed: () => p.skip(10), icon: const Icon(Icons.forward_10_rounded)),
-            IconButton(
-              tooltip: 'المفضلة',
-              onPressed: () => lib.toggleFav(w.id),
-              icon: Icon(fav ? Icons.favorite_rounded : Icons.favorite_border_rounded, color: fav ? gold : null),
-            ),
-          ]),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(26, 0, 26, 14),
-          child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            IconButton(
-              tooltip: 'اختيار الأجواء',
-              onPressed: () => _ambience(context, p, scene),
-              icon: Icon(Icons.landscape_rounded, color: p.ambience != null || p.music != null ? gold : null),
-            ),
-            IconButton(
-                tooltip: 'قراءة حية',
-                onPressed: () => Navigator.of(context).push(fadeRoute(const LiveReadScreen())),
-                icon: const Icon(Icons.subtitles_outlined)),
-            IconButton(
-                tooltip: 'اقرأ',
-                onPressed: () => Navigator.of(context).push(fadeRoute(const ReaderScreen())),
-                icon: const Icon(Icons.menu_book_rounded)),
-            IconButton(
-              tooltip: 'اصنع خاطرة',
-              onPressed: line == null ? null : () => Navigator.of(context).push(fadeRoute(QuoteScreen(text: line.text, work: w))),
-              icon: const Icon(Icons.format_quote_rounded),
-            ),
-            IconButton(
-              tooltip: 'مؤقت النوم',
-              onPressed: () => _sleep(context, p),
-              icon: Icon(p.sleepAt != null ? Icons.bedtime_rounded : Icons.bedtime_outlined, color: p.sleepAt != null ? gold : null),
-            ),
-          ]),
+              const SizedBox(height: AtheerSpacing.xs),
+              // أدوات التشغيل.
+              Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+                _ToolChip(label: '${arNum(p.speed)}×', tooltip: 'سرعة التشغيل', onTap: () => _speed(context, p)),
+                Semantics(
+                  button: true,
+                  label: 'رجوع ١٥ ثانية',
+                  excludeSemantics: true,
+                  child: AtheerPressable(
+                    onTap: () => p.skip(-15),
+                    child: const SizedBox(width: 52, height: 52, child: Center(child: AtheerSkipIcon(forward: false, size: 32))),
+                  ),
+                ),
+                Semantics(
+                  button: true,
+                  label: p.playing ? 'إيقاف مؤقت' : 'تشغيل',
+                  excludeSemantics: true,
+                  child: AtheerPressable(
+                    onTap: p.toggle,
+                    scale: 0.94,
+                    child: Container(
+                      width: 74,
+                      height: 74,
+                      decoration: BoxDecoration(gradient: AtheerGradients.gold, shape: BoxShape.circle, boxShadow: AtheerElevation.glow(gold)),
+                      child: Stack(alignment: Alignment.center, children: [
+                        AnimatedSwitcher(
+                          duration: AtheerMotion.fast,
+                          child: Icon(p.playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                              key: ValueKey(p.playing), size: 40, color: AtheerColors.midnight),
+                        ),
+                        if (p.loadingChapter || p.buffering)
+                          const SizedBox(width: 66, height: 66, child: CircularProgressIndicator(strokeWidth: 2, color: AtheerColors.midnight)),
+                      ]),
+                    ),
+                  ),
+                ),
+                Semantics(
+                  button: true,
+                  label: 'تقديم ١٥ ثانية',
+                  excludeSemantics: true,
+                  child: AtheerPressable(
+                    onTap: () => p.skip(15),
+                    child: const SizedBox(width: 52, height: 52, child: Center(child: AtheerSkipIcon(forward: true, size: 32))),
+                  ),
+                ),
+                _ToolChip(
+                  icon: p.sleepAt != null ? Icons.bedtime_rounded : Icons.bedtime_outlined,
+                  label: p.sleepAt == null ? null : _left(p.sleepAt!),
+                  tooltip: 'مؤقت النوم',
+                  active: p.sleepAt != null,
+                  onTap: () => _sleep(context, p),
+                ),
+              ]),
+              const SizedBox(height: AtheerSpacing.xs),
+              Divider(color: Colors.white.op(AtheerOpacity.hairline), height: AtheerSpacing.lg),
+              Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+                AtheerIconButton(
+                  icon: Icons.landscape_rounded,
+                  tooltip: 'المشهد والأصوات المحيطية',
+                  style: AtheerIconButtonStyle.plain,
+                  selected: ambientOn,
+                  onPressed: () => _ambience(context, p, scene),
+                ),
+                AtheerIconButton(
+                  icon: Icons.subtitles_outlined,
+                  tooltip: 'قراءة حية',
+                  style: AtheerIconButtonStyle.plain,
+                  onPressed: () => Navigator.of(context).push(AtheerMotion.fadeThrough(const LiveReadScreen())),
+                ),
+                AtheerIconButton(
+                  icon: Icons.menu_book_rounded,
+                  tooltip: 'اقرأ',
+                  style: AtheerIconButtonStyle.plain,
+                  onPressed: () => Navigator.of(context).push(AtheerMotion.fadeThrough(const ReaderScreen())),
+                ),
+                AtheerIconButton(
+                  icon: Icons.format_quote_rounded,
+                  tooltip: 'اصنع خاطرة',
+                  style: AtheerIconButtonStyle.plain,
+                  onPressed: line == null ? null : () => Navigator.of(context).push(AtheerMotion.fadeThrough(QuoteScreen(text: line.text, work: w))),
+                ),
+              ]),
+            ]),
+          ),
         ),
       ]),
     );
   }
 
+  /// الوقت المتبقي على مؤقت النوم بالدقائق.
+  String _left(DateTime at) {
+    final m = at.difference(DateTime.now()).inMinutes + 1;
+    return '${arNum(m < 1 ? 1 : m)}د';
+  }
+
+  void _speed(BuildContext context, PlayerController p) {
+    AtheerBottomSheet.show(
+      context,
+      title: 'سرعة التشغيل',
+      builder: (_) => ChangeNotifierProvider.value(
+        value: p,
+        child: Consumer<PlayerController>(
+          builder: (context, p, _) => Wrap(spacing: AtheerSpacing.sm, runSpacing: AtheerSpacing.sm, children: [
+            for (final s in PlayerController.speeds)
+              _Choice(
+                label: '${arNum(s)}×',
+                selected: (p.speed - s).abs() < 0.01,
+                onTap: () {
+                  p.setSpeed(s);
+                  Navigator.pop(context);
+                },
+              ),
+          ]),
+        ),
+      ),
+    );
+  }
+
   void _chapters(BuildContext context, PlayerController p) {
     final w = p.work!;
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AmbientColors.calmBlue,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
-      builder: (_) => SafeArea(
-        child: ListView(shrinkWrap: true, padding: const EdgeInsets.symmetric(vertical: 16), children: [
-          Padding(padding: const EdgeInsets.fromLTRB(20, 0, 20, 8), child: Text('الفصول', style: MidadText.title(size: 18))),
-          for (var i = 0; i < w.chapters.length; i++)
-            ListTile(
-              leading: CircleAvatar(
-                backgroundColor: i == p.chapterIndex ? AmbientColors.warmGold : Colors.white10,
-                child: Text(arNum(i + 1), style: MidadText.ui(color: i == p.chapterIndex ? AmbientColors.midnightNavy : Colors.white)),
-              ),
-              title: Text(w.chapters[i].title, style: MidadText.ui(weight: FontWeight.w600)),
-              onTap: () {
-                Navigator.pop(context);
-                p.openChapter(i);
-                context.read<LibraryStore>().touch(w.id, i);
-              },
+    AtheerBottomSheet.show(
+      context,
+      title: 'الفصول',
+      builder: (_) => ListView(shrinkWrap: true, children: [
+        for (var i = 0; i < w.chapters.length; i++)
+          AtheerPressable(
+            onTap: () {
+              Navigator.pop(context);
+              p.openChapter(i);
+              context.read<LibraryStore>().touch(w.id, i);
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: AtheerSpacing.sm),
+              child: Row(children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: i == p.chapterIndex ? AtheerGradients.accent : null,
+                    border: i == p.chapterIndex ? null : Border.all(color: Colors.white.op(AtheerOpacity.glassBorder)),
+                  ),
+                  child: Text(arNum(i + 1), style: AtheerType.label(color: i == p.chapterIndex ? AtheerColors.background : AtheerColors.accent)),
+                ),
+                const SizedBox(width: AtheerSpacing.md),
+                Expanded(child: Text(w.chapters[i].title, style: AtheerType.label())),
+              ]),
             ),
-        ]),
-      ),
+          ),
+      ]),
     );
   }
 
@@ -390,7 +465,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AmbientColors.calmBlue,
+      backgroundColor: AtheerColors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
       builder: (_) => ChangeNotifierProvider.value(
         value: p,
@@ -468,8 +543,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   Text('حركة الخلفية', style: MidadText.ui(size: 13, color: Colors.white70)),
                   const SizedBox(height: 8),
                   Wrap(spacing: 8, runSpacing: 8, children: [
-                    for (final q in AmbientQuality.values)
-                      ChoiceChip(label: Text(q.label), selected: sel.quality == q, onSelected: (_) => sel.setQuality(q)),
+                    for (final q in AmbientQuality.values) ChoiceChip(label: Text(q.label), selected: sel.quality == q, onSelected: (_) => sel.setQuality(q)),
                   ]),
                   const SizedBox(height: 4),
                   Text(sel.quality.hint, style: MidadText.ui(size: 11, color: Colors.white54)),
@@ -492,8 +566,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                         onSelected: (_) => p.setMusicMode(a.id),
                       ),
                   ]),
-                  if (p.musicLoading)
-                    const Padding(padding: EdgeInsets.only(top: 8), child: LinearProgressIndicator(minHeight: 2)),
+                  if (p.musicLoading) const Padding(padding: EdgeInsets.only(top: 8), child: LinearProgressIndicator(minHeight: 2)),
                   _volume(p.musicVolume, p.setMusicVolume, enabled: p.musicMode != 'off'),
                   const SizedBox(height: 14),
                   Text('مؤثرات صوتية (تشتغل مع الموسيقى)', style: MidadText.ui(size: 13, color: Colors.white70)),
@@ -533,37 +606,99 @@ class _PlayerScreenState extends State<PlayerScreen> {
       ]);
 
   void _sleep(BuildContext context, PlayerController p) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AmbientColors.calmBlue,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
-      builder: (_) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('مؤقت النوم', style: MidadText.title(size: 18)),
-            const SizedBox(height: 14),
-            Wrap(spacing: 10, runSpacing: 10, children: [
-              for (final m in [10, 20, 30, 45, 60])
-                ActionChip(
-                  label: Text('${arNum(m)} دقيقة'),
-                  onPressed: () {
-                    p.setSleep(m);
-                    Navigator.pop(context);
-                  },
-                ),
-              ActionChip(
-                label: const Text('إيقاف المؤقت'),
-                onPressed: () {
-                  p.setSleep(null);
-                  Navigator.pop(context);
-                },
-              ),
+    AtheerBottomSheet.show(
+      context,
+      title: 'مؤقت النوم',
+      builder: (_) => Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('يخفت الصوت تدريجيًا في آخر عشرين ثانية ثم يتوقف.', style: AtheerType.bodyMedium()),
+        const SizedBox(height: AtheerSpacing.lg),
+        Wrap(spacing: AtheerSpacing.sm, runSpacing: AtheerSpacing.sm, children: [
+          for (final m in [5, 10, 15, 20, 30, 45, 60, 90])
+            _Choice(
+              label: '${arNum(m)} دقيقة',
+              selected: false,
+              onTap: () {
+                p.setSleep(m);
+                Navigator.pop(context);
+              },
+            ),
+          if (p.sleepAt != null)
+            _Choice(
+              label: 'إيقاف المؤقت',
+              selected: true,
+              onTap: () {
+                p.setSleep(null);
+                Navigator.pop(context);
+              },
+            ),
+        ]),
+        const SizedBox(height: AtheerSpacing.lg),
+        Text('لشاشة سوداء تمامًا مع استمرار الصوت اختر حركة «النوم» من المشهد والأصوات.', style: AtheerType.bodySmall()),
+      ]),
+    );
+  }
+}
+
+/// زر أداة صغير في المشغّل (السرعة، مؤقت النوم).
+class _ToolChip extends StatelessWidget {
+  final IconData? icon;
+  final String? label;
+  final String tooltip;
+  final bool active;
+  final VoidCallback onTap;
+  const _ToolChip({this.icon, this.label, required this.tooltip, required this.onTap, this.active = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = active ? AtheerColors.accent : AtheerColors.textPrimary;
+    return Semantics(
+      button: true,
+      label: label == null ? tooltip : '$tooltip: $label',
+      excludeSemantics: true,
+      child: Tooltip(
+        message: tooltip,
+        child: AtheerPressable(
+          onTap: onTap,
+          child: Container(
+            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+            alignment: Alignment.center,
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              if (icon != null) Icon(icon, size: AtheerIconSize.md, color: c),
+              if (label != null) Text(label!, style: AtheerType.label(color: c)),
             ]),
-            const SizedBox(height: 14),
-            Text('لتعتيم الشاشة تدريجيًا حتى السواد مع استمرار الصوت اختر وضع «النوم» من الأجواء.',
-                style: MidadText.ui(size: 12, color: Colors.white60)),
-          ]),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// اختيار داخل الأوراق السفلية.
+class _Choice extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _Choice({required this.label, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      excludeSemantics: true,
+      child: AtheerPressable(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: AtheerMotion.fast,
+          padding: const EdgeInsets.symmetric(horizontal: AtheerSpacing.lg, vertical: AtheerSpacing.sm + 2),
+          decoration: BoxDecoration(
+            gradient: selected ? AtheerGradients.accent : null,
+            color: selected ? null : Colors.white.op(AtheerOpacity.glassFill),
+            borderRadius: BorderRadius.circular(AtheerRadius.pill),
+            border: Border.all(color: selected ? Colors.transparent : Colors.white.op(AtheerOpacity.hairline)),
+          ),
+          child: Text(label, style: AtheerType.label(color: selected ? AtheerColors.background : AtheerColors.textPrimary)),
         ),
       ),
     );
