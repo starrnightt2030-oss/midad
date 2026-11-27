@@ -17,7 +17,6 @@ dependencies:
   audio_service: ^0.18.15
   shared_preferences: ^2.3.2
   path_provider: ^2.1.4
-  google_fonts: ^6.2.1
   share_plus: ^10.1.4
   url_launcher: ^6.3.0
   wakelock_plus: ^1.5.2
@@ -65,5 +64,36 @@ flutter:
     - assets/ambient/25_ocean_depths/
     - assets/ambient/26_volcano_observatory/
     - assets/ambient/27_sky_city/
+  fonts:
+    - family: Alexandria
+      fonts:
+        - asset: assets/fonts/Alexandria-400.ttf
+        - asset: assets/fonts/Alexandria-500.ttf
+          weight: 500
+        - asset: assets/fonts/Alexandria-600.ttf
+          weight: 600
+        - asset: assets/fonts/Alexandria-700.ttf
+          weight: 700
+    - family: IBMPlexSansArabic
+      fonts:
+        - asset: assets/fonts/IBMPlexSansArabic-300.ttf
+          weight: 300
+        - asset: assets/fonts/IBMPlexSansArabic-400.ttf
+        - asset: assets/fonts/IBMPlexSansArabic-500.ttf
+          weight: 500
+        - asset: assets/fonts/IBMPlexSansArabic-600.ttf
+          weight: 600
+        - asset: assets/fonts/IBMPlexSansArabic-700.ttf
+          weight: 700
+    - family: Amiri
+      fonts:
+        - asset: assets/fonts/Amiri-400.ttf
+        - asset: assets/fonts/Amiri-700.ttf
+          weight: 700
+    - family: ArefRuqaa
+      fonts:
+        - asset: assets/fonts/ArefRuqaa-400.ttf
+        - asset: assets/fonts/ArefRuqaa-700.ttf
+          weight: 700
   shaders:
     - shaders/ambient_scene.frag

@@ -23,18 +23,22 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// (و FONTS_DIR يشير لملفات خط عربي لتظهر اللقطات بالخط الحقيقي).
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  MidadText.useGoogleFonts = false;
   final out = Platform.environment['HOME_FRAMES'];
   final fonts = Platform.environment['FONTS_DIR'];
+  // بدون ملفات الخطوط نستخدم خط الاختبار الافتراضي.
+  MidadText.useGoogleFonts = fonts != null;
 
   setUpAll(() async {
     if (fonts == null) return;
-    final loader = FontLoader('Roboto');
+    // كل عائلة باسمها كما في pubspec (مثلًا Alexandria-700.ttf → Alexandria).
+    final families = <String, FontLoader>{};
     for (final f in Directory(fonts).listSync().whereType<File>().where((f) => f.path.endsWith('.ttf'))) {
-      if (!f.path.contains('IBMPlex')) continue;
-      loader.addFont(Future.value(ByteData.sublistView(f.readAsBytesSync())));
+      final fam = f.uri.pathSegments.last.split('-').first;
+      families.putIfAbsent(fam, () => FontLoader(fam)).addFont(Future.value(ByteData.sublistView(f.readAsBytesSync())));
     }
-    await loader.load();
+    for (final l in families.values) {
+      await l.load();
+    }
     final icons = File('${Platform.environment['FLUTTER_ROOT'] ?? ''}/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf');
     if (icons.existsSync()) {
       await (FontLoader('MaterialIcons')..addFont(Future.value(ByteData.sublistView(icons.readAsBytesSync())))).load();
@@ -131,6 +135,7 @@ void main() {
 
   for (final size in const [Size(360, 740), Size(412, 915), Size(320, 568)]) {
     testWidgets('home builds at ${size.width.toInt()}x${size.height.toInt()}', (tester) async {
+      await render(tester, size: size, palette: AtheerPalettes.atheer, recent: ['w2', 'w4']);
       await render(tester, size: size, palette: AtheerPalettes.violet, recent: ['w2', 'w4']);
       await render(tester, size: size, palette: AtheerPalettes.ocean);
       await render(tester, size: size, palette: AtheerPalettes.forest, catalog: Catalog(version: '0', worlds: const [], works: const [], ambience: const []));
@@ -142,6 +147,8 @@ void main() {
     debugDisableShadows = false; // ظلال حقيقية في اللقطات
     addTearDown(() => debugDisableShadows = true);
     const size = Size(390, 844);
+    await render(tester, size: size, palette: AtheerPalettes.atheer, name: 'atheer');
+    await render(tester, size: size, palette: AtheerPalettes.atheer, recent: ['w2', 'w4'], name: 'atheer-resume');
     await render(tester, size: size, palette: AtheerPalettes.violet, name: 'violet');
     await render(tester, size: size, palette: AtheerPalettes.violet, recent: ['w2', 'w4'], name: 'violet-resume');
     await render(tester, size: size, palette: AtheerPalettes.ocean, name: 'ocean');

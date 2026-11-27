@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// لوحة ألوان ثيم واحد. كل الثيمات داكنة لأن التطبيق للّيل والاسترخاء.
@@ -31,6 +30,18 @@ class AtheerPalette {
 }
 
 class AtheerPalettes {
+  /// هوية أثير الأساسية: منتصف الليل، المحيط العميق، أخضر السكينة، والذهب الشمبانيا.
+  static const atheer = AtheerPalette(
+    id: 'atheer',
+    name: 'ليل أثير',
+    bgTop: Color(0xFF182C40), // Deep Ocean
+    bg: Color(0xFF090F19), // Midnight
+    surface: Color(0xFF101A28),
+    surfaceHigh: Color(0xFF172436),
+    accent: Color(0xFFD9BE91), // Champagne Gold
+    accentDeep: Color(0xFFB89868),
+    glow: Color(0xFF315B50), // Serenity Green
+  );
   static const violet = AtheerPalette(
     id: 'violet',
     name: 'ليل بنفسجي',
@@ -76,14 +87,14 @@ class AtheerPalettes {
     glow: Color(0xFFB8692A),
   );
 
-  static const all = [violet, ocean, forest, desert];
+  static const all = [atheer, violet, ocean, forest, desert];
 
-  static AtheerPalette byId(String? id) => all.firstWhere((p) => p.id == id, orElse: () => violet);
+  static AtheerPalette byId(String? id) => all.firstWhere((p) => p.id == id, orElse: () => atheer);
 }
 
 /// ألوان الثيم الحالي. تُقرأ من أي مكان، وتتغيّر فورًا عند تغيير الثيم.
 class MidadColors {
-  static AtheerPalette _p = AtheerPalettes.violet;
+  static AtheerPalette _p = AtheerPalettes.atheer;
   static AtheerPalette get palette => _p;
   static void use(AtheerPalette p) => _p = p;
 
@@ -97,7 +108,7 @@ class MidadColors {
   static Color get glow => _p.glow;
 
   // ورق القراءة: ثابت في كل الثيمات.
-  static const paper = Color(0xFFF3ECDF);
+  static const paper = Color(0xFFF0E8DB); // Soft Ivory
   static const paperInk = Color(0xFF2B2620);
   static const muted = Color(0xFFA6A9B6);
 }
@@ -145,32 +156,34 @@ Color parseHex(String? hex, [Color? fallback]) {
   return v == null ? fb : Color(v);
 }
 
+/// خطوط التطبيق، كلها مضمّنة داخل التطبيق (assets/fonts) وتعمل بدون إنترنت:
+/// Alexandria للعناوين، IBM Plex Sans Arabic للنصوص، Amiri للقراءة والحِكم، Aref Ruqaa للخط اليدوي.
 class MidadText {
-  /// في الاختبارات فقط: خطوط النظام بدل تنزيل خطوط Google (لا يوجد إنترنت هناك).
+  /// في الاختبارات فقط: خطوط النظام بدل الخطوط المضمّنة.
+  /// (الاسم قديم وبقي كما هو حتى لا تنكسر الاختبارات.)
   @visibleForTesting
   static bool useGoogleFonts = true;
 
-  static TextStyle _plex(double size, FontWeight weight, Color color, double? height) => useGoogleFonts
-      ? GoogleFonts.ibmPlexSansArabic(fontSize: size, fontWeight: weight, color: color, height: height)
-      : TextStyle(fontSize: size, fontWeight: weight, color: color, height: height);
+  /// هل تُستخدم الخطوط المضمّنة (دائمًا خارج الاختبارات).
+  static bool get brandFonts => useGoogleFonts;
+
+  static String? _f(String family) => useGoogleFonts ? family : null;
 
   static TextStyle ui({double size = 14, FontWeight weight = FontWeight.w500, Color color = Colors.white, double? height}) =>
-      _plex(size, weight, color, height);
+      TextStyle(fontFamily: _f('IBMPlexSansArabic'), fontSize: size, fontWeight: weight, color: color, height: height);
 
-  static TextStyle title({double size = 22, Color color = Colors.white, double? height}) => _plex(size, FontWeight.w700, color, height);
+  static TextStyle title({double size = 22, Color color = Colors.white, double? height}) =>
+      TextStyle(fontFamily: _f('Alexandria'), fontSize: size, fontWeight: FontWeight.w600, color: color, height: height);
 
   static TextStyle book({double size = 20, Color color = Colors.white, FontWeight weight = FontWeight.w400, double height = 1.9}) =>
-      useGoogleFonts
-          ? GoogleFonts.amiri(fontSize: size, fontWeight: weight, color: color, height: height)
-          : TextStyle(fontSize: size, fontWeight: weight, color: color, height: height);
+      TextStyle(fontFamily: _f('Amiri'), fontSize: size, fontWeight: weight, color: color, height: height);
 
-  static TextStyle callig({double size = 40, Color color = Colors.white}) => useGoogleFonts
-      ? GoogleFonts.arefRuqaa(fontSize: size, fontWeight: FontWeight.w700, color: color, height: 1.25)
-      : TextStyle(fontSize: size, fontWeight: FontWeight.w700, color: color, height: 1.25);
+  static TextStyle callig({double size = 40, Color color = Colors.white}) =>
+      TextStyle(fontFamily: _f('ArefRuqaa'), fontSize: size, fontWeight: FontWeight.w700, color: color, height: 1.25);
 }
 
 ThemeData buildTheme() {
-  final base = ThemeData(brightness: Brightness.dark, useMaterial3: true);
+  final base = ThemeData(brightness: Brightness.dark, useMaterial3: true, fontFamily: MidadText.useGoogleFonts ? 'IBMPlexSansArabic' : null);
   return base.copyWith(
     scaffoldBackgroundColor: MidadColors.ink,
     colorScheme: base.colorScheme.copyWith(
@@ -179,7 +192,7 @@ ThemeData buildTheme() {
       surface: MidadColors.surface,
       onPrimary: MidadColors.ink,
     ),
-    textTheme: MidadText.useGoogleFonts ? GoogleFonts.ibmPlexSansArabicTextTheme(base.textTheme) : base.textTheme,
+    textTheme: MidadText.useGoogleFonts ? base.textTheme.apply(fontFamily: 'IBMPlexSansArabic') : base.textTheme,
     snackBarTheme: SnackBarThemeData(backgroundColor: MidadColors.surfaceHigh, behavior: SnackBarBehavior.floating),
     sliderTheme: base.sliderTheme.copyWith(
       activeTrackColor: MidadColors.accent,
