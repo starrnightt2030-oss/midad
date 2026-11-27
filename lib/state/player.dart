@@ -63,6 +63,7 @@ class PlayerController extends ChangeNotifier {
   Duration position = Duration.zero;
   Duration duration = Duration.zero;
   double speed = 1.0;
+
   /// المؤثر الصوتي الحالي (مطر، بحر...). اختياري ومغلق افتراضيًا.
   Ambience? ambience;
   double ambienceVolume = 0.25;
@@ -80,6 +81,9 @@ class PlayerController extends ChangeNotifier {
   static const _kMusicVol = 'atheer.music.volume';
   static const _kFxVol = 'atheer.fx.volume';
   DateTime? sleepAt;
+
+  /// خفوت تدريجي قبل توقف مؤقت النوم (اختياري من الإعدادات).
+  bool sleepFade = true;
 
   int lineIndex = 0;
   int wordIndex = -1;
@@ -119,8 +123,7 @@ class PlayerController extends ChangeNotifier {
     );
   }
 
-  void _syncState() =>
-      _media?.showState(playing: playing, loading: loadingChapter || buffering, position: position, speed: speed);
+  void _syncState() => _media?.showState(playing: playing, loading: loadingChapter || buffering, position: position, speed: speed);
 
   ChapterRef? get chapter => (work == null || work!.chapters.isEmpty) ? null : work!.chapters[chapterIndex];
   double get seconds => position.inMilliseconds / 1000;
@@ -393,9 +396,7 @@ class PlayerController extends ChangeNotifier {
     } catch (e) {
       debugPrint('music failed: $e');
       // بدون إنترنت والمقطوعة لم تُحفظ بعد: نرجع للموسيقى المدمجة.
-      final fallback = (repo.catalog?.ambience ?? const <Ambience>[])
-          .where((x) => x.isMusic && !repo.isRemote(x.file))
-          .firstOrNull;
+      final fallback = (repo.catalog?.ambience ?? const <Ambience>[]).where((x) => x.isMusic && !repo.isRemote(x.file)).firstOrNull;
       if (music?.id == a.id && fallback != null && fallback.id != a.id) {
         music = fallback;
         try {
@@ -452,13 +453,19 @@ class PlayerController extends ChangeNotifier {
     } else {
       sleepAt = DateTime.now().add(Duration(minutes: minutes));
       final total = Duration(minutes: minutes);
-      final fadeAt = total - _fadeStep * _fadeSteps;
+      final fadeAt = sleepFade ? total - _fadeStep * _fadeSteps : total;
       _sleepTimer = Timer(fadeAt.isNegative ? Duration.zero : fadeAt, _fadeOutAndStop);
     }
     notifyListeners();
   }
 
   void _fadeOutAndStop() {
+    if (!sleepFade) {
+      pause();
+      sleepAt = null;
+      notifyListeners();
+      return;
+    }
     var step = 0;
     _fadeTimer?.cancel();
     _fadeTimer = Timer.periodic(_fadeStep, (t) {

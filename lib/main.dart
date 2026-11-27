@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -12,6 +14,7 @@ import 'screens/onboarding_screen.dart';
 import 'state/account.dart';
 import 'state/downloads.dart';
 import 'state/library.dart';
+import 'state/listening_tracker.dart';
 import 'state/audio_handler.dart';
 import 'state/player.dart';
 import 'theme.dart';
@@ -37,6 +40,7 @@ Future<void> main() async {
   library.load();
   account.load();
   downloads.load();
+  ListeningTracker(player, library).start();
   final ambient = AmbientSceneSelector();
   AtheerLiveScenesEngine.init(ambient);
   await player.loadPrefs();
@@ -117,6 +121,7 @@ class _AtheerAppState extends State<AtheerApp> {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
+      builder: (context, child) => _NightDim(child: child ?? const SizedBox()),
       home: const _Gate(),
     );
   }
@@ -178,5 +183,49 @@ class _ErrorView extends StatelessWidget {
         ]),
       ),
     );
+  }
+}
+
+/// تعتيم ليلي خفيف للواجهة كلها بعد العاشرة مساءً (اختياري من «رحلتي»).
+class _NightDim extends StatefulWidget {
+  final Widget child;
+  const _NightDim({required this.child});
+
+  @override
+  State<_NightDim> createState() => _NightDimState();
+}
+
+class _NightDimState extends State<_NightDim> {
+  Timer? _t;
+
+  @override
+  void initState() {
+    super.initState();
+    _t = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _t?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final on = context.select<LibraryStore, bool>((l) => l.nightDim);
+    final h = DateTime.now().hour;
+    final night = on && (h >= 22 || h < 5);
+    return Stack(children: [
+      widget.child,
+      IgnorePointer(
+        child: AnimatedOpacity(
+          opacity: night ? 1 : 0,
+          duration: const Duration(seconds: 2),
+          child: const ColoredBox(color: Color(0x47000000), child: SizedBox.expand()),
+        ),
+      ),
+    ]);
   }
 }

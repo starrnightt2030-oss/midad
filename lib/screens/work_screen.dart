@@ -17,6 +17,7 @@ import '../widgets/common.dart';
 import '../widgets/cover_art.dart';
 import 'account_screen.dart';
 import 'actions.dart';
+import 'library_screen.dart' show showAddToPlaylist;
 
 /// تفاصيل القصة بأسلوب أغلفة الكتب والمجلات الفاخرة:
 /// غلاف كبير فوق خلفية مضبّبة من نفس الغلاف، عنوان تحريري، زر تشغيل واضح،
@@ -80,6 +81,11 @@ class WorkScreen extends StatelessWidget {
                       child: Row(children: [
                         AtheerIconButton(icon: Icons.arrow_back_rounded, tooltip: 'رجوع', onPressed: () => Navigator.pop(context)),
                         const Spacer(),
+                        AtheerIconButton(
+                          icon: Icons.playlist_add_rounded,
+                          tooltip: 'أضف إلى قائمة',
+                          onPressed: () => showAddToPlaylist(context, work),
+                        ),
                         AtheerIconButton(
                           icon: Icons.ios_share_rounded,
                           tooltip: 'مشاركة',
@@ -303,9 +309,7 @@ class _ChapterTile extends StatelessWidget {
                 gradient: active ? AtheerGradients.accent : null,
                 border: active ? null : Border.all(color: Colors.white.op(AtheerOpacity.glassBorder)),
               ),
-              child: active
-                  ? TalkingBars(color: AtheerColors.background, active: playing)
-                  : Text(arNum(index + 1), style: AtheerType.label(color: accent)),
+              child: active ? TalkingBars(color: AtheerColors.background, active: playing) : Text(arNum(index + 1), style: AtheerType.label(color: accent)),
             ),
             const SizedBox(width: AtheerSpacing.md + 2),
             Expanded(

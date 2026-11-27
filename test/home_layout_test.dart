@@ -5,7 +5,11 @@ import 'package:atheer/ambient/ambient_scene_engine.dart';
 import 'package:atheer/data/repository.dart';
 import 'package:atheer/models.dart';
 import 'package:atheer/screens/home_shell.dart';
+import 'package:atheer/screens/journey_screen.dart';
+import 'package:atheer/screens/library_screen.dart';
+import 'package:atheer/screens/sakina_screen.dart';
 import 'package:atheer/screens/work_screen.dart';
+import 'package:atheer/widgets/story_card.dart';
 import 'package:atheer/state/account.dart';
 import 'package:atheer/state/downloads.dart';
 import 'package:atheer/state/library.dart';
@@ -88,7 +92,7 @@ void main() {
     File('$out/$name.png').writeAsBytesSync(png!.buffer.asUint8List());
   }
 
-  Future<void> render(WidgetTester tester, {required Size size, required AtheerPalette palette, Catalog? catalog, List<String> recent = const [], List<String> favs = const [], String? name, Widget Function(Catalog)? screen}) async {
+  Future<void> render(WidgetTester tester, {required Size size, required AtheerPalette palette, Catalog? catalog, List<String> recent = const [], List<String> favs = const [], String? name, Widget Function(Catalog)? screen, void Function(LibraryStore)? seed}) async {
     SharedPreferences.setMockInitialValues({});
     MidadColors.use(palette);
     tester.view.physicalSize = size * 2;
@@ -103,6 +107,7 @@ void main() {
     }
     if (recent.isNotEmpty) lib.lastChapter[recent.first] = 1;
     lib.favorites.addAll(favs);
+    seed?.call(lib);
     final key = GlobalKey();
     await tester.pumpWidget(MultiProvider(
       providers: [
@@ -176,5 +181,33 @@ void main() {
     debugDisableShadows = false;
     addTearDown(() => debugDisableShadows = true);
     await render(tester, size: const Size(390, 1700), palette: AtheerPalettes.atheer, recent: ['w1'], name: 'work', screen: (c) => WorkScreen(work: c.workById('w1')!));
+  });
+
+  Widget tab(Widget child) => Scaffold(body: AtheerBackground(child: child));
+
+  for (final size in const [Size(320, 568), Size(412, 915)]) {
+    testWidgets('tabs build at ${size.width.toInt()}x${size.height.toInt()}', (tester) async {
+      await render(tester, size: size, palette: AtheerPalettes.atheer, screen: (c) => tab(const SakinaScreen()));
+      await render(tester, size: size, palette: AtheerPalettes.atheer, recent: ['w1', 'w2'], favs: ['w3'], screen: (c) => tab(const LibraryScreen()));
+      await render(tester, size: size, palette: AtheerPalettes.atheer, screen: (c) => tab(const JourneyScreen()));
+    });
+  }
+
+  testWidgets('tab screenshots', (tester) async {
+    if (out == null) return;
+    debugDisableShadows = false;
+    addTearDown(() => debugDisableShadows = true);
+    await render(tester, size: const Size(390, 1500), palette: AtheerPalettes.atheer, name: 'sakina', screen: (c) => tab(const SakinaScreen()));
+    await render(tester, size: const Size(390, 844), palette: AtheerPalettes.atheer, recent: ['w1', 'w2'], favs: ['w3'], name: 'library', screen: (c) => tab(const LibraryScreen()));
+    await render(tester, size: const Size(390, 2000), palette: AtheerPalettes.atheer, name: 'journey', screen: (c) => tab(const JourneyScreen()), seed: (l) {
+      final now = DateTime.now();
+      for (var i = 0; i < 7; i++) {
+        l.dailySeconds[LibraryStore.dayKey(now.subtract(Duration(days: i)))] = [1200, 600, 0, 1800, 900, 300, 1500][i];
+      }
+      l.worldSeconds.addAll({'bedtime_stories': 4200, 'wisdom_minutes': 1500, 'tranquility': 600});
+      l.completed['w1'] = now;
+      l.completed['w4'] = now;
+      l.history.addAll([(id: 'w1', at: now), (id: 'w2', at: now), (id: 'w4', at: now)]);
+    });
   });
 }
