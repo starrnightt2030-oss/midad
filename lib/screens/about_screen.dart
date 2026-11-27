@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../config.dart';
 import '../data/repository.dart';
@@ -79,8 +78,6 @@ class AboutScreen extends StatelessWidget {
                 ),
                 title: Text(AppConfig.developer, textDirection: TextDirection.ltr, style: MidadText.ui(size: 16, weight: FontWeight.w700)),
                 subtitle: Text('Developer & Designer', textDirection: TextDirection.ltr, style: MidadText.ui(size: 12, color: Colors.white60)),
-                trailing: const Icon(Icons.open_in_new_rounded, size: 18),
-                onTap: () => launchUrl(Uri.parse(AppConfig.developerGithub), mode: LaunchMode.externalApplication),
               ),
               const SizedBox(height: 6),
             ]),
