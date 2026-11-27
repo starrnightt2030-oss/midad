@@ -79,9 +79,15 @@ class ContentRepository extends ChangeNotifier {
 
   Future<void> _apply(String body, String src) async {
     var c = Catalog.fromJson(jsonDecode(body) as Map<String, dynamic>);
-    if (c.ambience.isEmpty) {
-      c = Catalog(version: c.version, worlds: c.worlds, works: c.works, ambience: await _bundledAmbience());
-    }
+    // الأجواء المدمجة دائمًا، وما يُضاف من اللوحة يكمّلها (أو يستبدل نفس المعرّف).
+    final bundled = await _bundledAmbience();
+    final remoteIds = c.ambience.map((a) => a.id).toSet();
+    c = Catalog(
+      version: c.version,
+      worlds: c.worlds,
+      works: c.works,
+      ambience: [...bundled.where((a) => !remoteIds.contains(a.id)), ...c.ambience],
+    );
     catalog = c;
     source = src;
     // الأغلفة والصوت روابط كاملة؛ المسارات النسبية (الأجواء) من داخل التطبيق.

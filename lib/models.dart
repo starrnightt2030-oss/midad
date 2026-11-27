@@ -98,10 +98,25 @@ class Ambience {
   final String icon;
   final String file;
 
-  Ambience({required this.id, required this.name, required this.icon, required this.file});
+  /// music = موسيقى خلفية | effect = مؤثر صوتي (مطر، بحر...). يشتغلان معًا.
+  final String kind;
 
-  factory Ambience.fromJson(Map<String, dynamic> j) =>
-      Ambience(id: j['id'] as String, name: (j['name'] ?? '') as String, icon: (j['icon'] ?? 'music') as String, file: j['file'] as String);
+  /// الأجواء التي تناسبها (sleep, spiritual, hope, kids...) لاختيار تلقائي حسب القصة.
+  final List<String> moods;
+
+  Ambience({required this.id, required this.name, required this.icon, required this.file, String? kind, this.moods = const []})
+      : kind = kind ?? (icon == 'music' ? 'music' : 'effect');
+
+  bool get isMusic => kind == 'music';
+
+  factory Ambience.fromJson(Map<String, dynamic> j) => Ambience(
+        id: j['id'] as String,
+        name: (j['name'] ?? '') as String,
+        icon: (j['icon'] ?? 'music') as String,
+        file: j['file'] as String,
+        kind: j['kind'] as String?,
+        moods: ((j['moods'] ?? const []) as List).map((e) => '$e').toList(),
+      );
 }
 
 class Catalog {

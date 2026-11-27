@@ -15,6 +15,7 @@ import 'state/library.dart';
 import 'state/audio_handler.dart';
 import 'state/player.dart';
 import 'theme.dart';
+import 'widgets/scene_layer.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,6 +39,14 @@ Future<void> main() async {
   downloads.load();
   final ambient = AmbientSceneSelector();
   AtheerLiveScenesEngine.init(ambient);
+  await player.loadPrefs();
+  // موسيقى الخلفية تلقائيًا حسب نوع القصة ومشهدها.
+  player.autoMusic = (w) => AmbientAudioMixer.pickMusic(
+        w,
+        repo.catalog?.ambience ?? const [],
+        scene: ambient.sceneFor(workId: w.id, mood: SceneLayer.resolve(w.scene, w.art)),
+        worldName: repo.catalog?.worldOf(w)?.name,
+      );
   runApp(MultiProvider(
     providers: [
       ChangeNotifierProvider.value(value: repo),

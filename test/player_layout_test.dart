@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -135,6 +136,26 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     });
   }
+
+  testWidgets('اختيار الموسيقى والمؤثرات', (tester) async {
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final (sel, p, lib, repo) = await setup(tester);
+    repo.catalog = Catalog.fromJson(jsonDecode(File('content/catalog.json').readAsStringSync()) as Map<String, dynamic>);
+    final key = GlobalKey();
+    await tester.pumpWidget(app(const PlayerScreen(), sel, p, lib, repo, key));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.byTooltip('اختيار الأجواء'));
+    await tester.pumpAndSettle(const Duration(milliseconds: 100), EnginePhase.sendSemanticsUpdate, const Duration(seconds: 3));
+    expect(find.text('موسيقى الخلفية'), findsOneWidget);
+    expect(find.text('تلقائي'), findsOneWidget);
+    expect(find.text('تهويدة النوم'), findsOneWidget);
+    expect(find.text('ليالي شرقية'), findsOneWidget);
+    expect(find.text('مطر ورعد بعيد'), findsOneWidget);
+    await shot(tester, key, 'audio_sheet_360');
+    await tester.pumpWidget(const SizedBox());
+  });
 
   testWidgets('gallery and preview', (tester) async {
     tester.view.physicalSize = const Size(412, 915);

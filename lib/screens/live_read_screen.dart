@@ -137,7 +137,7 @@ class LiveReadScreen extends StatelessWidget {
                 const SizedBox(height: 6),
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                   Text(hasLines ? 'السطر ${arNum(p.lineIndex + 1)} من ${arNum(s!.lines.length)}' : '', style: MidadText.ui(size: 11, color: Colors.white70)),
-                  Text(p.ambience == null ? 'بدون موسيقى' : p.ambience!.name, style: MidadText.ui(size: 11, color: Colors.white70)),
+                  Text(p.music == null && p.ambience == null ? 'بدون موسيقى' : [if (p.music != null) p.music!.name, if (p.ambience != null) p.ambience!.name].join(' · '), style: MidadText.ui(size: 11, color: Colors.white70)),
                 ]),
               ]),
             ),
