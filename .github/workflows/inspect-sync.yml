@@ -5,9 +5,9 @@ on:
   workflow_dispatch:
     inputs:
       title:
-        description: 'عنوان القصة'
+        description: 'عنوان القصة (* = كل القصص)'
         required: true
-        default: 'حكايتي'
+        default: '*'
 
 permissions:
   contents: read
@@ -15,6 +15,7 @@ permissions:
 jobs:
   inspect:
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     env:
       SUPABASE_URL: https://scrynlokpplwolbltghf.supabase.co
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -28,6 +29,8 @@ jobs:
         with:
           path: ~/.cache/huggingface
           key: whisper-medium-v1
-      - run: python tools/inspect_sync.py "$TITLE" --whisper
+      - name: فحص كل الفصول (أو قصة واحدة)
+        run: |
+          if [ "$TITLE" = "*" ]; then python tools/sync_audit.py; else python tools/sync_audit.py --title "$TITLE"; fi
         env:
-          TITLE: ${{ github.event.inputs.title || 'حكايتي' }}
+          TITLE: ${{ github.event.inputs.title || '*' }}
