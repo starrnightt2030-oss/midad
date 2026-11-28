@@ -279,8 +279,6 @@ def process_align(job):
     wav = studio.CACHE / f'align-{wid}-{cid}.wav'
     bucket, path, size = download_audio(ch, src)
     convert = bool(bucket) and needs_convert(path)
-    if not script.get('lines') and not convert:
-        raise RuntimeError('اكتب نص الفصل أو ارفعه أولًا')
     set_job(job['id'], progress='يجهّز الصوت…')
     subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', str(src), '-vn', '-ac', '1', '-ar', '16000', str(wav)], check=True)
     with wave.open(str(wav)) as wf:
@@ -312,8 +310,20 @@ def process_align(job):
         update_minutes(wid)
 
     if not script.get('lines'):
+        # لا يوجد نص: نكتبه من الصوت نفسه كمسودة يراجعها المشرف (التوقيتات من السماع مباشرة)
+        report = progress_reporter(job)
+        try:
+            heard = aligner.transcribe(str(wav), on_progress=lambda t, total: report(t, total, f'يكتب النص من الصوت… {min(99, int(t * 100 / total))}%'))
+        except Exception:
+            if convert:
+                save()
+            raise
+        if not heard:
+            save()
+            raise RuntimeError('لم يُسمع كلام في الصوت لكتابة النص منه؛ الصوت محفوظ واكتب النص بنفسك')
+        row['script'] = aligner.draft_script(heard)
         save()
-        log('  ✔ الصوت جاهز (لا يوجد نص لضبط توقيته)')
+        log(f'  ✔ مسودة نص من الصوت: {len(row["script"]["lines"])} سطر')
         return
 
     try:

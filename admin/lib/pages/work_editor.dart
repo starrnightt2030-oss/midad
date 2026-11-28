@@ -353,6 +353,7 @@ class _WorkEditorState extends State<WorkEditor> {
                           '${((ch['script'] as Map?)?['lines'] as List?)?.length ?? 0} سطر',
                           (ch['audio'] ?? '') != '' || (ch['audio_path'] ?? '') != '' ? 'فيه صوت' : 'بدون صوت',
                           if (scriptHasTimings(ch['script'] as Map<String, dynamic>?)) 'متزامن',
+                          if ((ch['script'] as Map?)?['draft'] == true) 'نص مسودة: راجعه',
                           if (_jobLabel(jobs[ch['id']]) != null) _jobLabel(jobs[ch['id']])!,
                         ].join(' • ')),
                         trailing: Wrap(children: [
@@ -518,7 +519,8 @@ class _ChapterDialogState extends State<ChapterDialog> {
     // لو النص لم يتغيّر نحتفظ بالتوقيتات القديمة.
     final old = widget.chapter?['script'] as Map<String, dynamic>?;
     final same = text.text.trim() == originalText.trim() && old != null;
-    final script = mergeSpeakers(same ? old : scriptFromText(text.text), old, voices);
+    // الحفظ بعد المراجعة يعتمد النص المكتوب آليًا (يشيل علامة المسودة)
+    final script = mergeSpeakers(same ? (Map<String, dynamic>.of(old!)..remove('draft')) : scriptFromText(text.text), old, voices);
     final row = {'title': title.text.trim(), 'script': script, 'audio': audio, 'audio_path': audioPath};
     try {
       final chId = widget.chapter?['id'] as String? ?? 'ch${DateTime.now().millisecondsSinceEpoch}';
@@ -553,6 +555,17 @@ class _ChapterDialogState extends State<ChapterDialog> {
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             TextField(controller: title, decoration: const InputDecoration(labelText: 'عنوان الفصل')),
             const SizedBox(height: 10),
+            if ((widget.chapter?['script'] as Map?)?['draft'] == true)
+              Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: Colors.amber.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.amber.withValues(alpha: 0.5))),
+                child: const Row(children: [
+                  Icon(Icons.warning_amber_rounded, color: Colors.amber),
+                  SizedBox(width: 8),
+                  Expanded(child: Text('هذا النص مكتوب آليًا من الصوت (مسودة) وقد يكون فيه أخطاء. راجعه وصحّحه، والحفظ يعتمده ويضبط التوقيت من جديد لو عدّلت.')),
+                ]),
+              ),
             TextField(
               controller: text,
               minLines: 8,
@@ -607,8 +620,10 @@ class _ChapterDialogState extends State<ChapterDialog> {
                   align = v == true;
                   _alignTouched = true;
                 }),
-                title: const Text('اضبط توقيت النص على الصوت بعد الحفظ'),
-                subtitle: const Text('يجهز خلال دقائق: كل سطر وكلمة تظهر في وقتها مع صوتك.'),
+                title: Text(text.text.trim().isEmpty ? 'اكتب النص من الصوت تلقائيًا بعد الحفظ' : 'اضبط توقيت النص على الصوت بعد الحفظ'),
+                subtitle: Text(text.text.trim().isEmpty
+                    ? 'يجهز خلال دقائق كمسودة مع التوقيت؛ افتح الفصل بعدها وراجع النص وصحّح الأخطاء.'
+                    : 'يجهز خلال دقائق: كل سطر وكلمة تظهر في وقتها مع صوتك.'),
               ),
             const Divider(height: 24),
             ExpansionTile(
