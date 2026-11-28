@@ -193,6 +193,29 @@ def apply_to_script(script, heard, stats=None):
     return difflib.SequenceMatcher(None, s, h, autojunk=False).ratio() if h else 0.0
 
 
+def draft_script(heard, narrator='الراوي', max_chars=140, pause=0.9):
+    """نص مسودة من كلام Whisper نفسه (لو الفصل بلا نص): سطر لكل جملة، والتوقيتات من السماع مباشرة.
+    يقطع السطر عند علامة نهاية جملة، أو سكتة طويلة، أو لو طال."""
+    lines, cur = [], []
+
+    def flush():
+        if cur:
+            toks = [(t, a, b) for w, a, b in cur for t in w.split()]
+            lines.append({'speaker': narrator, 'text': ' '.join(t for t, _, _ in toks),
+                          'start': round(toks[0][1], 2), 'end': round(toks[-1][2], 2),
+                          'words': [[round(a, 2), round(b, 2)] for _, a, b in toks]})
+            cur.clear()
+
+    for i, (w, a, b) in enumerate(heard):
+        if cur and (a - cur[-1][2] >= pause or sum(len(x[0]) + 1 for x in cur) + len(w) > max_chars):
+            flush()
+        cur.append((w, a, b))
+        if w.rstrip()[-1:] in '.!?؟…' and sum(len(x[0]) + 1 for x in cur) >= 12:
+            flush()
+    flush()
+    return {'speakers': {narrator: {'color': '#B794F6'}}, 'lines': lines, 'draft': True}
+
+
 def load_wav16k(path):
     """يقرأ ملف wav أحادي 16 كيلوهرتز (من ffmpeg) كمصفوفة، بدون مكتبة av."""
     import wave

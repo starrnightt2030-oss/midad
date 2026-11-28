@@ -26,6 +26,7 @@ String _mime(String ext) => switch (ext) {
       'aac' => 'audio/aac',
       'ogg' || 'opus' => 'audio/ogg',
       'wav' => 'audio/wav',
+      'flac' => 'audio/flac',
       _ => 'application/octet-stream',
     };
 
@@ -36,6 +37,42 @@ Future<String> uploadFile({required String bucket, required String folder, requi
   await db.storage.from(bucket).uploadBinary(path, bytes, fileOptions: FileOptions(contentType: _mime(ext), upsert: true));
   if (bucket == 'premium') return path;
   return db.storage.from(bucket).getPublicUrl(path);
+}
+
+/// حد الملف الواحد في Supabase المجاني ٥٠ ميجا؛ الأكبر منه يُرفع على أجزاء ويجمعها عامل الصوت.
+const kPartSize = 45 * 1024 * 1024;
+
+/// يرفع صوتًا من أي حجم. الملف الكبير يُرفع أجزاءً (x.part1of3.wav …) ويُرجَع رابط/مسار الجزء الأول،
+/// وعامل الصوت يجمع الأجزاء ويضغطها إلى m4a واحد.
+Future<String> uploadAudio({
+  required String bucket,
+  required String folder,
+  required String fileName,
+  required int length,
+  required Future<Uint8List> Function(int start, int end) read,
+  void Function(double)? onProgress,
+}) async {
+  final ext = _ext(fileName);
+  final stamp = DateTime.now().millisecondsSinceEpoch;
+  final n = (length / kPartSize).ceil().clamp(1, 1000);
+  String? first;
+  for (var i = 0; i < n; i++) {
+    final path = n == 1 ? '$folder/$stamp.$ext' : '$folder/$stamp.part${i + 1}of$n.$ext';
+    final start = i * kPartSize;
+    final end = (start + kPartSize).clamp(0, length);
+    final bytes = await read(start, end);
+    await db.storage.from(bucket).uploadBinary(path, bytes, fileOptions: FileOptions(contentType: _mime(ext), upsert: true));
+    first ??= path;
+    onProgress?.call((i + 1) / n);
+  }
+  if (bucket == 'premium') return first!;
+  return db.storage.from(bucket).getPublicUrl(first!);
+}
+
+/// هل يحتاج الصوت المرفوع تجهيزًا من عامل الصوت (ضغط/تجميع) قبل أن يكون جاهزًا للمستمعين؟
+bool audioNeedsConvert(String urlOrPath) {
+  final p = urlOrPath.split('?').first.toLowerCase();
+  return RegExp(r'\.part1of\d+\.').hasMatch(p) || RegExp(r'\.(wav|flac|aac|mp4|mov|m4v)$').hasMatch(p);
 }
 
 /// يحوّل النص إلى سطور القصة. كل سطر جملة؛ «اسم: كلام» لتحديد المتحدث، والسطر بلا اسم للراوي.
