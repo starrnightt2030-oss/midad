@@ -11,6 +11,7 @@
 """
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -235,55 +236,62 @@ def audio_source(ch):
     return None, a
 
 
+PARTS = re.compile(r'\.part1of(\d+)\.([a-z0-9]+)$')
+# صيغ تُحوَّل دائمًا إلى m4a: كبيرة (wav/flac) أو صوت مستخرج من فيديو (aac خام) أو مرفوعة على أجزاء
+CONVERT_EXT = ('.wav', '.flac', '.aac', '.mp4', '.mov', '.m4v')
+
+
+def part_paths(path):
+    """ملف كبير ترفعه اللوحة على أجزاء (حد الملف الواحد في Supabase المجاني ٥٠ ميجا): x.part1of3.wav ، x.part2of3.wav …"""
+    m = PARTS.search(path)
+    if not m:
+        return [path]
+    n, ext = int(m.group(1)), m.group(2)
+    base = path[:m.start()]
+    return [f'{base}.part{i}of{n}.{ext}' for i in range(1, n + 1)]
+
+
 def download_audio(ch, dest):
     bucket, path = audio_source(ch)
     if bucket:
-        data = _req('GET', f'/storage/v1/object/{bucket}/{urllib.parse.quote(path)}', raw=True)
+        with dest.open('wb') as out:
+            for p in part_paths(path):
+                out.write(_req('GET', f'/storage/v1/object/{bucket}/{urllib.parse.quote(p)}', raw=True))
     elif path.startswith('http'):
         with urllib.request.urlopen(path, timeout=300) as res:
-            data = res.read()
+            dest.write_bytes(res.read())
     else:
         raise RuntimeError('ارفع ملف صوت الفصل أولًا ثم اطلب ضبط التوقيت')
-    dest.write_bytes(data)
-    return bucket, path, len(data)
+    return bucket, path, dest.stat().st_size
+
+
+def needs_convert(path):
+    p = path.lower()
+    return bool(PARTS.search(p)) or p.endswith(CONVERT_EXT)
 
 
 def process_align(job):
     wid, cid = job['work_id'], job['chapter_id']
     ch, wk, premium = load_chapter(job)
     script = ch['script'] or {}
-    if not script.get('lines'):
-        raise RuntimeError('اكتب نص الفصل أو ارفعه أولًا')
     studio.CACHE.mkdir(parents=True, exist_ok=True)
     src = studio.CACHE / f'align-{wid}-{cid}.src'
     wav = studio.CACHE / f'align-{wid}-{cid}.wav'
     bucket, path, size = download_audio(ch, src)
-    set_job(job['id'], progress='يسمع الصوت…')
-    subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', str(src), '-ac', '1', '-ar', '16000', str(wav)], check=True)
+    convert = bool(bucket) and needs_convert(path)
+    if not script.get('lines') and not convert:
+        raise RuntimeError('اكتب نص الفصل أو ارفعه أولًا')
+    set_job(job['id'], progress='يجهّز الصوت…')
+    subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', str(src), '-vn', '-ac', '1', '-ar', '16000', str(wav)], check=True)
     with wave.open(str(wav)) as wf:
         dur = wf.getnframes() / wf.getframerate()
     log(f'  الصوت {dur / 60:.1f} دقيقة، {size // 1024} ك.ب')
 
-    added = aligner.split_long_lines(script)
-    if added:
-        log(f'  تقسيم الفقرات الطويلة: +{added} سطر')
-    report = progress_reporter(job)
-    heard = aligner.transcribe(str(wav), on_progress=lambda t, total: report(t, total, f'يسمع الصوت… {min(99, int(t * 100 / total))}%'))
-    if not heard:
-        raise RuntimeError('لم يُسمع كلام في ملف الصوت')
-    stats = {}
-    ratio = aligner.apply_to_script(script, heard, stats)
-    log(f'  التطابق بين النص والصوت: {ratio:.0%}، كلمات مضبوطة مباشرة: {stats["anchored"]:.0%}، أطول فجوة: {stats["max_gap"]:.0f} ث')
-    if ratio < 0.25:
-        raise RuntimeError(f'النص لا يطابق الصوت (التطابق {ratio:.0%} فقط). تأكد أنه نص نفس التسجيل')
-    if stats['anchored'] < 0.4:
-        raise RuntimeError(f'لم يُضبط إلا {stats["anchored"]:.0%} من الكلمات على الصوت. تأكد أن النص هو نفس كلام التسجيل')
-
-    row = {'script': script, 'duration_seconds': round(dur, 2)}
-    # ملفات wav كبيرة جدًا على المساحة المجانية: نضغطها إلى m4a ونستبدلها
-    if bucket and path.lower().endswith(('.wav', '.flac')):
+    row = {'duration_seconds': round(dur, 2)}
+    # wav والصوت المستخرج من الفيديو والملفات المقسّمة: نضغطها إلى m4a واحد ونستبدلها (توفيرًا للمساحة المجانية)
+    if convert:
         m4a = studio.CACHE / f'align-{wid}-{cid}.m4a'
-        subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', str(src), '-af', 'loudnorm=I=-18:TP=-1.5',
+        subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', str(src), '-vn', '-af', 'loudnorm=I=-18:TP=-1.5',
                         '-c:a', 'aac', '-b:a', '80k', '-movflags', '+faststart', str(m4a)], check=True)
         data = m4a.read_bytes()
         new_path = f'{wid}/{cid}-{int(time.time())}.m4a'
@@ -293,10 +301,43 @@ def process_align(job):
         else:
             row.update(audio=f'{URL}/storage/v1/object/public/audio/{new_path}', audio_path='')
         log(f'  ضغط الصوت: {size // 1024} ← {len(data) // 1024} ك.ب')
-    patch('chapters', f'work_id=eq.{q(wid)}&id=eq.{q(cid)}', row)
-    if 'audio_path' in row and bucket:
-        remove_old(path if bucket == 'premium' else ch.get('audio'), bucket)
-    update_minutes(wid)
+
+    def save():
+        patch('chapters', f'work_id=eq.{q(wid)}&id=eq.{q(cid)}', row)
+        if convert:
+            try:
+                _req('DELETE', f'/storage/v1/object/{bucket}', {'prefixes': part_paths(path)})
+            except Exception as e:  # الحذف ليس ضروريًا لنجاح الطلب
+                log(f'  تعذّر حذف الملف القديم: {e}')
+        update_minutes(wid)
+
+    if not script.get('lines'):
+        save()
+        log('  ✔ الصوت جاهز (لا يوجد نص لضبط توقيته)')
+        return
+
+    try:
+        added = aligner.split_long_lines(script)
+        if added:
+            log(f'  تقسيم الفقرات الطويلة: +{added} سطر')
+        report = progress_reporter(job)
+        heard = aligner.transcribe(str(wav), on_progress=lambda t, total: report(t, total, f'يسمع الصوت… {min(99, int(t * 100 / total))}%'))
+        if not heard:
+            raise RuntimeError('لم يُسمع كلام في ملف الصوت')
+        stats = {}
+        ratio = aligner.apply_to_script(script, heard, stats)
+        log(f'  التطابق بين النص والصوت: {ratio:.0%}، كلمات مضبوطة مباشرة: {stats["anchored"]:.0%}، أطول فجوة: {stats["max_gap"]:.0f} ث')
+        if ratio < 0.25:
+            raise RuntimeError(f'النص لا يطابق الصوت (التطابق {ratio:.0%} فقط). تأكد أنه نص نفس التسجيل')
+        if stats['anchored'] < 0.4:
+            raise RuntimeError(f'لم يُضبط إلا {stats["anchored"]:.0%} من الكلمات على الصوت. تأكد أن النص هو نفس كلام التسجيل')
+    except Exception:
+        # الصوت المضغوط يُحفظ حتى لو فشل ضبط التوقيت
+        if convert:
+            save()
+        raise
+    row['script'] = script
+    save()
     log(f'  ✔ {len(script["lines"])} سطر متزامن')
 
 

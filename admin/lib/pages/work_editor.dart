@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../api.dart';
+import '../media.dart';
 import '../theme.dart';
 import 'home.dart';
 import 'preview.dart';
@@ -395,6 +397,7 @@ class _ChapterDialogState extends State<ChapterDialog> {
   late String audio = widget.chapter?['audio'] as String? ?? '';
   late String audioPath = widget.chapter?['audio_path'] as String? ?? '';
   String? audioName;
+  String? uploadStatus;
   bool busy = false;
   bool generate = false;
   bool align = false, _alignTouched = false;
@@ -432,31 +435,82 @@ class _ChapterDialogState extends State<ChapterDialog> {
     return others[(i - 1) % others.length];
   }
 
+  /// حد معقول حتى لا تمتلئ المساحة المجانية (١ جيجا) بملف واحد.
+  static const _maxAudio = 400 * 1024 * 1024;
+
   Future<void> _pickAudio() async {
-    final f = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: ['mp3', 'm4a', 'aac', 'wav', 'ogg']);
+    final f = await FilePicker.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['mp3', 'm4a', 'aac', 'wav', 'ogg', 'flac', ...kVideoExtensions],
+    );
     final file = f.isEmpty ? null : f.single;
     if (file == null) return;
-    final bytes = await file.xFile.readAsBytes();
-    if (!mounted) return;
-    if (bytes.length > 50 * 1024 * 1024) return toast(context, 'الملف أكبر من ٥٠ ميجا');
-    setState(() => busy = true);
+    final x = file.xFile;
+    Future<Uint8List> readRange(int start, int end) async {
+      final b = BytesBuilder(copy: false);
+      await for (final c in x.openRead(start, end)) {
+        b.add(c);
+      }
+      return b.takeBytes();
+    }
+
+    setState(() {
+      busy = true;
+      uploadStatus = 'يقرأ الملف…';
+    });
     try {
+      final length = await x.length();
+      var name = file.name;
+      var size = length;
+      Future<Uint8List> Function(int, int) read = readRange;
+      final dot = name.lastIndexOf('.');
+      final ext = dot < 0 ? '' : name.substring(dot + 1).toLowerCase();
+      if (kVideoExtensions.contains(ext)) {
+        // فيديو: نستخرج الصوت هنا على الجهاز، فيُرفع الصوت وحده (أصغر بكثير من الفيديو)
+        final r = await extractAudioFromMp4(readRange, length, onProgress: (p) {
+          if (mounted) setState(() => uploadStatus = 'يستخرج الصوت من الفيديو… ${(p * 100).round()}%');
+        });
+        name = '${name.substring(0, dot)}.${r.ext}';
+        size = r.bytes.length;
+        read = (s, e) async => Uint8List.sublistView(r.bytes, s, e);
+      }
+      if (size > _maxAudio) throw MediaException('الصوت أكبر من ٤٠٠ ميجا');
+      if (mounted) setState(() => uploadStatus = 'يرفع الصوت…');
       final bucket = widget.premium ? 'premium' : 'audio';
-      final r = await uploadFile(bucket: bucket, folder: widget.workId, fileName: file.name, bytes: bytes);
+      final res = await uploadAudio(
+        bucket: bucket,
+        folder: widget.workId,
+        fileName: name,
+        length: size,
+        read: read,
+        onProgress: (p) {
+          if (mounted && size > kPartSize) setState(() => uploadStatus = 'يرفع الصوت… ${(p * 100).round()}%');
+        },
+      );
       if (widget.premium) {
-        audioPath = r;
+        audioPath = res;
         audio = '';
       } else {
-        audio = r;
+        audio = res;
         audioPath = '';
       }
-      audioName = file.name;
+      audioName = name == file.name ? name : '$name (من الفيديو)';
       if (!_alignTouched) align = true;
+    } on MediaException catch (e) {
+      if (mounted) toast(context, e.message);
     } catch (e) {
       if (mounted) toast(context, 'تعذّر رفع الصوت: $e');
     }
-    if (mounted) setState(() => busy = false);
+    if (mounted) {
+      setState(() {
+        busy = false;
+        uploadStatus = null;
+      });
+    }
   }
+
+  /// الصوت المرفوع يحتاج ضغطًا/تجميعًا من عامل الصوت (wav، صوت فيديو، ملف كبير مقسّم).
+  bool get _needsConvert => audioNeedsConvert(audioPath.isNotEmpty ? audioPath : audio);
 
   Future<void> _save() async {
     if (title.text.trim().isEmpty) return toast(context, 'اكتب عنوان الفصل');
@@ -475,7 +529,8 @@ class _ChapterDialogState extends State<ChapterDialog> {
       }
       if (generate) {
         await enqueueVoice(widget.workId, chId, kind: 'tts');
-      } else if (align && _hasAudio) {
+      } else if ((align || _needsConvert) && _hasAudio) {
+        // wav وصوت الفيديو يُضغطان دائمًا، ولو بلا نص يُجهَّز الصوت فقط
         await enqueueVoice(widget.workId, chId, kind: 'align');
       }
       if (mounted) Navigator.pop(context, true);
@@ -516,7 +571,7 @@ class _ChapterDialogState extends State<ChapterDialog> {
             Row(children: [
               Icon(hasAudio ? Icons.check_circle_rounded : Icons.music_off_rounded, color: hasAudio ? kAccent : Colors.white54),
               const SizedBox(width: 8),
-              Expanded(child: Text(audioName ?? (hasAudio ? 'يوجد ملف صوت' : 'لا يوجد صوت بعد (يُعرض النص بقراءة تقديرية)'))),
+              Expanded(child: Text(uploadStatus ?? audioName ?? (hasAudio ? 'يوجد ملف صوت' : 'لا يوجد صوت بعد (يُعرض النص بقراءة تقديرية)'))),
               OutlinedButton.icon(onPressed: busy ? null : _pickAudio, icon: const Icon(Icons.upload_file_rounded), label: Text(hasAudio ? 'استبدال الصوت' : 'رفع صوت')),
               if (hasAudio)
                 IconButton(
@@ -533,6 +588,16 @@ class _ChapterDialogState extends State<ChapterDialog> {
               const Padding(
                 padding: EdgeInsets.only(top: 6),
                 child: Text('القصة باشتراك: الصوت يُحفظ في مكان محمي.', style: TextStyle(fontSize: 12, color: Colors.white54)),
+              ),
+            if (!hasAudio)
+              const Padding(
+                padding: EdgeInsets.only(top: 6),
+                child: Text('يقبل mp3 و wav و m4a، أو فيديو mp4/mov ويُستخرج صوته تلقائيًا.', style: TextStyle(fontSize: 12, color: Colors.white54)),
+              ),
+            if (hasAudio && _needsConvert && !generate)
+              const Padding(
+                padding: EdgeInsets.only(top: 6),
+                child: Text('بعد الحفظ يُضغط الصوت تلقائيًا خلال دقائق ليوفّر المساحة.', style: TextStyle(fontSize: 12, color: Colors.white54)),
               ),
             if (hasAudio && !generate)
               CheckboxListTile(
