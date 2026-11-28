@@ -304,6 +304,12 @@ class ChapterScript {
   /// يحسب توقيتات تقديرية للسطور والكلمات لو الملف ليس فيه توقيتات حقيقية.
   /// [targetSeconds] لو معروف (مدة الصوت) يتم ضبط التقدير عليه.
   void ensureTimings({double? targetSeconds}) {
+    final anyTimed = lines.any((l) => l.hasTiming);
+    // بعض السطور مضبوطة وبعضها لا (سطر أضيف بعد الضبط مثلًا): نحتفظ بالتوقيتات الحقيقية
+    // ونقدّر الناقص فقط بين جاريه، بدل رمي كل التوقيتات والرجوع لتقدير يسبقه الصوت تدريجيًا.
+    if (anyTimed && !estimated && lines.any((l) => !l.hasTiming)) {
+      _fillGaps(targetSeconds);
+    }
     final allTimed = lines.isNotEmpty && lines.every((l) => l.hasTiming);
     // التقدير يُعاد حسابه عند معرفة مدة الصوت؛ التوقيتات الحقيقية (من ضبط التوقيت) لا تُلمس.
     if (!allTimed || estimated) {
@@ -338,6 +344,37 @@ class ChapterScript {
         l.words.add(WordTiming(t, t + d));
         t += d;
       }
+    }
+  }
+
+  /// يقدّر توقيت السطور الناقصة فقط، موزّعًا الفجوة بين أقرب سطرين مضبوطين حسب طول النص.
+  void _fillGaps(double? targetSeconds) {
+    var i = 0;
+    while (i < lines.length) {
+      if (lines[i].hasTiming) {
+        i++;
+        continue;
+      }
+      var j = i;
+      while (j < lines.length && !lines[j].hasTiming) {
+        j++;
+      }
+      final weights = [for (var k = i; k < j; k++) lines[k].text.replaceAll(' ', '').length + 4.0];
+      final total = weights.fold<double>(0, (a, b) => a + b);
+      final lo = i > 0 ? lines[i - 1].end : 0.0;
+      final fallback = lo + total * 0.085;
+      var hi = j < lines.length ? lines[j].start : (targetSeconds != null && targetSeconds > lo ? targetSeconds : fallback);
+      if (hi <= lo) hi = lo + 0.1 * (j - i);
+      var t = lo;
+      for (var k = i; k < j; k++) {
+        final d = (hi - lo) * weights[k - i] / total;
+        lines[k]
+          ..start = t
+          ..end = t + d
+          ..words = [];
+        t += d;
+      }
+      i = j;
     }
   }
 

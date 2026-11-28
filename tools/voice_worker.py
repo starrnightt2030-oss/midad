@@ -351,13 +351,62 @@ def process_align(job):
     log(f'  ✔ {len(script["lines"])} سطر متزامن')
 
 
+_WS = re.compile(r'\s+')
+
+
+def timing_problems(script):
+    """نفس شرط التطبيق (ensureTimings في lib/models.dart): سطر واحد بلا توقيت يجعل التطبيق
+    يتجاهل التوقيتات الحقيقية ويقدّرها بعدد الحروف، فيبدأ صحيحًا ثم يسبق الصوت الكلام."""
+    bad = 0
+    for ln in (script or {}).get('lines') or []:
+        st, en = ln.get('start'), ln.get('end')
+        toks = [t for t in _WS.split(ln.get('text') or '') if t]
+        if st is None or en is None or st < 0 or en <= st or len(ln.get('words') or []) != len(toks):
+            bad += 1
+    return bad
+
+
+def enqueue_missing():
+    """أي فصل له صوت ونص لكن توقيته ناقص (لم يُطلب ضبطه، أو عُدّل نصه بعد الضبط) يُضاف له طلب ضبط تلقائيًا.
+    لا يُعاد طلب فشل إلا لو عُدّل الفصل بعد الفشل. يرجع عدد الطلبات المضافة."""
+    chs = select('chapters', 'select=work_id,id,title,script,audio,audio_path,updated_at')
+    jobs = select('voice_jobs', 'select=work_id,chapter_id,status,kind,updated_at')
+    added = 0
+    for ch in chs:
+        if not (ch.get('audio') or ch.get('audio_path')):
+            continue
+        lines = (ch.get('script') or {}).get('lines') or []
+        if not lines or not timing_problems(ch.get('script')):
+            continue
+        mine = [j for j in jobs if j['work_id'] == ch['work_id'] and j['chapter_id'] == ch['id']]
+        if any(j['status'] in ('pending', 'running') for j in mine):
+            continue
+        if any(j['status'] == 'failed' and (j.get('updated_at') or '') >= (ch.get('updated_at') or '') for j in mine):
+            continue
+        _req('POST', '/rest/v1/voice_jobs', {'work_id': ch['work_id'], 'chapter_id': ch['id'], 'kind': 'align'},
+             {'Prefer': 'return=minimal'})
+        log(f'طلب ضبط توقيت تلقائي: {ch["work_id"]} / {ch.get("title")} ({timing_problems(ch.get("script"))} سطر بلا توقيت)')
+        added += 1
+    return added
+
+
 def main():
     if not KEY:
         sys.exit('SUPABASE_SERVICE_ROLE_KEY غير موجود')
+    if '--scan' in sys.argv:
+        # خطوة الفحص في GitHub Actions: نضيف طلبات الضبط الناقصة ثم نطبع عدد الطلبات المنتظرة
+        enqueue_missing()
+        n = len(select('voice_jobs', 'status=in.(pending,running)&select=id'))
+        print(n)
+        return
     # طلبات علقت في دورة سابقة (توقّف العامل) تعود للانتظار
     stale = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(time.time() - 2 * 3600))
     patch('voice_jobs', f'status=eq.running&updated_at=lt.{stale}', {'status': 'pending'})
 
+    try:
+        enqueue_missing()
+    except Exception as e:  # الفحص التلقائي لا يمنع تنفيذ الطلبات الموجودة
+        log(f'تعذّر فحص الفصول بلا توقيت: {e}')
     jobs = select('voice_jobs', 'status=eq.pending&order=created_at.asc&select=*')
     if not jobs:
         log('لا توجد طلبات.')

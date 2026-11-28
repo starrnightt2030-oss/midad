@@ -22,16 +22,16 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
     steps:
+      - uses: actions/checkout@v5
+
+      # يضيف تلقائيًا طلب «ضبط التوقيت» لأي فصل له صوت ونص بلا توقيت، ثم يعدّ الطلبات المنتظرة
       - name: هل توجد طلبات؟
         id: check
         run: |
-          N=$(curl -s "$SUPABASE_URL/rest/v1/voice_jobs?status=in.(pending,running)&select=id" \
-            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" | python3 -c "import sys,json; d=json.load(sys.stdin); print(len(d) if isinstance(d,list) else 0)")
+          N=$(python3 tools/voice_worker.py --scan | tee /dev/stderr | tail -n 1)
+          case "$N" in ''|*[!0-9]*) N=0 ;; esac
           echo "طلبات: $N"
           echo "n=$N" >> "$GITHUB_OUTPUT"
-
-      - if: steps.check.outputs.n != '0'
-        uses: actions/checkout@v5
 
       - if: steps.check.outputs.n != '0'
         uses: actions/setup-python@v6
